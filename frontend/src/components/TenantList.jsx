@@ -38,35 +38,20 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
     return payments.length > 0 ? payments[0] : null;
   };
 
-  const hasPaymentForCurrentMonth = (tenantId) => {
-    if (!rentPayments) return false;
-    const now = new Date();
-    return rentPayments.some(
-      p => p.tenant_id === tenantId &&
-        p.month === now.getMonth() + 1 &&
-        p.year === now.getFullYear()
-    );
-  };
-
   const getNextDueInfo = (tenant) => {
     const now = new Date();
     const dueDay = tenant.rent_due_day || 1;
-    const paidThisMonth = hasPaymentForCurrentMonth(tenant.id);
 
-    if (paidThisMonth) {
-      // Next due is next month
-      const next = new Date(now.getFullYear(), now.getMonth() + 1, dueDay);
-      return { date: next, status: 'paid', daysAway: Math.ceil((next - now) / (1000 * 60 * 60 * 24)) };
+    // Always return the next upcoming due date (in the future)
+    let nextDue;
+    if (now.getDate() < dueDay) {
+      // Due day hasn't arrived this month yet
+      nextDue = new Date(now.getFullYear(), now.getMonth(), dueDay);
+    } else {
+      // Due day has passed this month - next due is next month
+      nextDue = new Date(now.getFullYear(), now.getMonth() + 1, dueDay);
     }
-
-    // Current month's due date
-    const thisMonthDue = new Date(now.getFullYear(), now.getMonth(), dueDay);
-    if (now > thisMonthDue) {
-      // Overdue
-      const daysOverdue = Math.floor((now - thisMonthDue) / (1000 * 60 * 60 * 24));
-      return { date: thisMonthDue, status: 'overdue', daysOverdue };
-    }
-    return { date: thisMonthDue, status: 'upcoming', daysAway: Math.ceil((thisMonthDue - now) / (1000 * 60 * 60 * 24)) };
+    return { date: nextDue };
   };
 
   if (tenants.length === 0) {
