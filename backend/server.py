@@ -69,7 +69,7 @@ class Tenant(BaseModel):
     property_id: str
     name: str
     contact: str
-    email: str
+    email: Optional[str] = ""
     monthly_rent: float
     lease_start: str
     lease_end: str
@@ -80,7 +80,7 @@ class TenantCreate(BaseModel):
     property_id: str
     name: str
     contact: str
-    email: str
+    email: Optional[str] = ""
     monthly_rent: float
     lease_start: str
     lease_end: str

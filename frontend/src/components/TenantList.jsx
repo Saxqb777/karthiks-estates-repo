@@ -1,7 +1,7 @@
 import React from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Trash, Phone, Envelope, PencilSimple } from '@phosphor-icons/react';
+import { Trash, Phone, PencilSimple } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 import {
   Select,
@@ -99,13 +99,7 @@ export default function TenantList({ tenants, properties, onRefresh, onEdit }) {
           {tenants.map((tenant) => (
             <tr key={tenant.id} className="border-b border-[#E6E2D8] hover:bg-[#F7F5F0]/50" data-testid={`tenant-row-${tenant.id}`}>
               <td className="py-4 px-4">
-                <div>
-                  <p className="font-medium text-[#2E2E2E]">{tenant.name}</p>
-                  <div className="flex items-center text-sm text-[#7D7D7D] mt-1">
-                    <Envelope size={14} className="mr-1" />
-                    {tenant.email}
-                  </div>
-                </div>
+                <p className="font-medium text-[#2E2E2E]">{tenant.name}</p>
               </td>
               <td className="py-4 px-4 text-[#2E2E2E]">
                 {getPropertyName(tenant.property_id)}

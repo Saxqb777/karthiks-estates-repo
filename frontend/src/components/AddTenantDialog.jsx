@@ -14,7 +14,6 @@ const emptyForm = {
   property_id: '',
   name: '',
   contact: '',
-  email: '',
   monthly_rent: '',
   lease_start: '',
   lease_end: '',
@@ -32,7 +31,6 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
         property_id: editTenant.property_id || '',
         name: editTenant.name || '',
         contact: editTenant.contact || '',
-        email: editTenant.email || '',
         monthly_rent: editTenant.monthly_rent?.toString() || '',
         lease_start: editTenant.lease_start ? editTenant.lease_start.split('T')[0] : '',
         lease_end: editTenant.lease_end ? editTenant.lease_end.split('T')[0] : '',
@@ -116,18 +114,6 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
                 required
                 className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                 data-testid="tenant-name-input"
-              />
-            </div>
-            <div>
-              <Label htmlFor="email" className="text-[#2E2E2E]">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                required
-                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                data-testid="tenant-email-input"
               />
             </div>
             <div>
