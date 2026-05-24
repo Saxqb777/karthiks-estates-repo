@@ -15,6 +15,7 @@ export default function AddTaxDialog({ open, onOpenChange, properties, onSuccess
     property_id: '',
     amount: '',
     year: new Date().getFullYear(),
+    payment_date: '',
     paid_status: false
   });
   const [loading, setLoading] = useState(false);
@@ -24,17 +25,21 @@ export default function AddTaxDialog({ open, onOpenChange, properties, onSuccess
     setLoading(true);
 
     try {
-      await axios.post(`${API}/property-taxes`, {
-        ...formData,
+      const payload = {
+        property_id: formData.property_id,
         amount: parseFloat(formData.amount),
-        year: parseInt(formData.year)
-      });
+        year: parseInt(formData.year),
+        payment_date: formData.payment_date || null,
+        paid_status: !!formData.payment_date
+      };
+      await axios.post(`${API}/property-taxes`, payload);
 
       toast.success('Property tax record added successfully');
       setFormData({
         property_id: '',
         amount: '',
         year: new Date().getFullYear(),
+        payment_date: '',
         paid_status: false
       });
       onOpenChange(false);
@@ -109,6 +114,20 @@ export default function AddTaxDialog({ open, onOpenChange, properties, onSuccess
                 className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                 data-testid="tax-amount-input"
               />
+            </div>
+            <div>
+              <Label htmlFor="payment_date" className="text-[#2E2E2E]">Payment Date (Optional)</Label>
+              <Input
+                id="payment_date"
+                type="date"
+                value={formData.payment_date}
+                onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                data-testid="tax-payment-date-input"
+              />
+              <p className="text-xs text-[#7D7D7D] mt-1">
+                Leave blank if unpaid. Filling this date will mark the tax as paid.
+              </p>
             </div>
           </div>
           <DialogFooter>
