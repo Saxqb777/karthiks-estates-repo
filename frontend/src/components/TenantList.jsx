@@ -85,10 +85,11 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
             <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Name</th>
             <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Property</th>
             <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Contact</th>
+            <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Lease Start</th>
             <th className="text-right py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Monthly Rent</th>
             <th className="text-right py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Security Deposit</th>
-            <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Last Payment</th>
-            <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Next Due</th>
+            <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Last Payment Date</th>
+            <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Next Payment Date</th>
             <th className="text-center py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Actions</th>
           </tr>
         </thead>
@@ -109,6 +110,9 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
                     <Phone size={14} className="mr-1" />
                     {tenant.contact}
                   </div>
+                </td>
+                <td className="py-4 px-3 text-sm text-[#2E2E2E]">
+                  {tenant.lease_start ? new Date(tenant.lease_start).toLocaleDateString('en-IN') : '-'}
                 </td>
                 <td className="py-4 px-3 text-right font-semibold text-[#2C4C3B]">
                   ₹{tenant.monthly_rent.toLocaleString('en-IN')}

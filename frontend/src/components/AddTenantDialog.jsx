@@ -17,8 +17,7 @@ const emptyForm = {
   monthly_rent: '',
   security_deposit: '',
   rent_due_day: '1',
-  lease_start: '',
-  lease_end: ''
+  lease_start: ''
 };
 
 export default function AddTenantDialog({ open, onOpenChange, properties, onSuccess, editTenant }) {
@@ -35,8 +34,7 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
         monthly_rent: editTenant.monthly_rent?.toString() || '',
         security_deposit: editTenant.security_deposit?.toString() || '0',
         rent_due_day: editTenant.rent_due_day?.toString() || '1',
-        lease_start: editTenant.lease_start ? editTenant.lease_start.split('T')[0] : '',
-        lease_end: editTenant.lease_end ? editTenant.lease_end.split('T')[0] : ''
+        lease_start: editTenant.lease_start ? editTenant.lease_start.split('T')[0] : ''
       });
     } else {
       setFormData(emptyForm);
@@ -52,7 +50,8 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
         ...formData,
         monthly_rent: parseFloat(formData.monthly_rent),
         security_deposit: parseFloat(formData.security_deposit) || 0,
-        rent_due_day: parseInt(formData.rent_due_day) || 1
+        rent_due_day: parseInt(formData.rent_due_day) || 1,
+        lease_end: ''
       };
 
       if (isEditMode) {
@@ -179,31 +178,17 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="lease_start" className="text-[#2E2E2E]">Lease Start *</Label>
-                <Input
-                  id="lease_start"
-                  type="date"
-                  value={formData.lease_start}
-                  onChange={(e) => setFormData({ ...formData, lease_start: e.target.value })}
-                  required
-                  className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                  data-testid="tenant-lease-start-input"
-                />
-              </div>
-              <div>
-                <Label htmlFor="lease_end" className="text-[#2E2E2E]">Lease End *</Label>
-                <Input
-                  id="lease_end"
-                  type="date"
-                  value={formData.lease_end}
-                  onChange={(e) => setFormData({ ...formData, lease_end: e.target.value })}
-                  required
-                  className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                  data-testid="tenant-lease-end-input"
-                />
-              </div>
+            <div>
+              <Label htmlFor="lease_start" className="text-[#2E2E2E]">Lease Start *</Label>
+              <Input
+                id="lease_start"
+                type="date"
+                value={formData.lease_start}
+                onChange={(e) => setFormData({ ...formData, lease_start: e.target.value })}
+                required
+                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                data-testid="tenant-lease-start-input"
+              />
             </div>
           </div>
           <DialogFooter>

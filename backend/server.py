@@ -73,7 +73,7 @@ class Tenant(BaseModel):
     security_deposit: float = 0.0
     rent_due_day: int = 1  # Day of month rent is due (1-31)
     lease_start: str
-    lease_end: str
+    lease_end: Optional[str] = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class TenantCreate(BaseModel):
@@ -84,7 +84,7 @@ class TenantCreate(BaseModel):
     security_deposit: float = 0.0
     rent_due_day: int = 1
     lease_start: str
-    lease_end: str
+    lease_end: Optional[str] = ""
 
 class TenantUpdate(BaseModel):
     name: Optional[str] = None
