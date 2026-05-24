@@ -9,18 +9,12 @@ import { Label } from './ui/label';
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-const defaultImages = [
-  'https://images.unsplash.com/photo-1628012209120-d9db7abf7eab?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB0b3duaG91c2UlMjBhcmNoaXRlY3R1cmUlMjBleHRlcmlvcnxlbnwwfHx8fDE3Nzk2MDk5MDV8MA&ixlib=rb-4.1.0&q=85',
-  'https://images.unsplash.com/photo-1627141234469-24711efb373c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjB0b3duaG91c2UlMjBhcmNoaXRlY3R1cmUlMjBleHRlcmlvcnxlbnwwfHx8fDE3Nzk2MDk5MDV8MA&ixlib=rb-4.1.0&q=85'
-];
-
 const emptyForm = {
   name: '',
   address: '',
   purchase_price: '',
   purchase_date: '',
-  appreciation_rate: '',
-  image_url: ''
+  appreciation_rate: ''
 };
 
 export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editProperty }) {
@@ -35,8 +29,7 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
         address: editProperty.address || '',
         purchase_price: editProperty.purchase_price?.toString() || '',
         purchase_date: editProperty.purchase_date ? editProperty.purchase_date.split('T')[0] : '',
-        appreciation_rate: editProperty.appreciation_rate?.toString() || '',
-        image_url: editProperty.image_url || ''
+        appreciation_rate: editProperty.appreciation_rate?.toString() || ''
       });
     } else {
       setFormData(emptyForm);
@@ -48,12 +41,11 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
     setLoading(true);
 
     try {
-      const imageUrl = formData.image_url || defaultImages[Math.floor(Math.random() * defaultImages.length)];
       const payload = {
         ...formData,
         purchase_price: parseFloat(formData.purchase_price),
         appreciation_rate: parseFloat(formData.appreciation_rate),
-        image_url: imageUrl
+        image_url: editProperty?.image_url || ''
       };
 
       if (isEditMode) {
@@ -146,18 +138,6 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
                 required
                 className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                 data-testid="property-rate-input"
-              />
-            </div>
-            <div>
-              <Label htmlFor="image_url" className="text-[#2E2E2E]">Image URL (Optional)</Label>
-              <Input
-                id="image_url"
-                type="url"
-                value={formData.image_url}
-                onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                placeholder="Leave empty for default image"
-                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                data-testid="property-image-input"
               />
             </div>
           </div>

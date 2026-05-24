@@ -1,7 +1,7 @@
 import React from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { MapPin, Calendar, TrendUp, PencilSimple, Trash } from '@phosphor-icons/react';
+import { MapPin, Calendar, TrendUp, PencilSimple, Trash, House } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -38,36 +38,39 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
       className="bg-white border border-[#E6E2D8] rounded-lg overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:border-[#D1CBBF] transition-all duration-200"
       data-testid={`property-card-${property.id}`}
     >
-      <div className="relative">
-        <img
-          src={property.image_url}
-          alt={property.name}
-          className="w-full h-48 object-cover"
-        />
-        <div className="absolute top-3 right-3 flex gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => onEdit(property)}
-            className="bg-white/90 backdrop-blur-sm hover:bg-white text-[#2C4C3B] border border-[#E6E2D8]"
-            data-testid={`edit-property-${property.id}`}
-          >
-            <PencilSimple size={16} className="mr-1" />
-            Edit
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={handleDelete}
-            className="bg-white/90 backdrop-blur-sm hover:bg-[#D96C4E]/10 text-[#D96C4E] border border-[#E6E2D8]"
-            data-testid={`delete-property-${property.id}`}
-          >
-            <Trash size={16} />
-          </Button>
-        </div>
-      </div>
       <div className="p-6">
-        <h3 className="text-xl font-semibold text-[#2C4C3B] mb-2">{property.name}</h3>
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-[#2C4C3B]/10 rounded-lg">
+              <House size={28} className="text-[#2C4C3B]" weight="duotone" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-[#2C4C3B]">{property.name}</h3>
+              <span className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Townhouse</span>
+            </div>
+          </div>
+          <div className="flex gap-1">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onEdit(property)}
+              className="text-[#2C4C3B] hover:text-[#1F362A] hover:bg-[#2C4C3B]/10"
+              data-testid={`edit-property-${property.id}`}
+            >
+              <PencilSimple size={18} />
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleDelete}
+              className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
+              data-testid={`delete-property-${property.id}`}
+            >
+              <Trash size={18} />
+            </Button>
+          </div>
+        </div>
+
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-[#7D7D7D]">
             <MapPin size={16} className="mr-2" />
