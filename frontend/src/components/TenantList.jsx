@@ -116,7 +116,7 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
                 ) : (
                   <>
                     <th className="text-left py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Move-out</th>
-                    <th className="text-right py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Pending Dues</th>
+                    <th className="text-right py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Net Unrecovered</th>
                   </>
                 )}
                 <th className="text-center py-3 px-3 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Actions</th>
@@ -186,9 +186,23 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
                           {tenant.lease_end_date ? new Date(tenant.lease_end_date).toLocaleDateString('en-IN') : '-'}
                         </td>
                         <td className="py-4 px-3 text-right">
-                          <span className={`font-medium ${(tenant.pending_dues_at_exit || 0) > 0 ? 'text-[#D96C4E]' : 'text-[#7BA38A]'}`}>
-                            ₹{(tenant.pending_dues_at_exit || 0).toLocaleString('en-IN')}
-                          </span>
+                          {(() => {
+                            const dues = tenant.pending_dues_at_exit || 0;
+                            const withheld = tenant.deposit_withheld || 0;
+                            const net = Math.max(0, dues - withheld);
+                            return (
+                              <div>
+                                <span className={`font-semibold ${net > 0 ? 'text-[#D96C4E]' : 'text-[#7BA38A]'}`}>
+                                  ₹{net.toLocaleString('en-IN')}
+                                </span>
+                                {dues > 0 && (
+                                  <div className="text-[10px] text-[#7D7D7D] mt-0.5">
+                                    Dues ₹{dues.toLocaleString('en-IN')} − Withheld ₹{withheld.toLocaleString('en-IN')}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </td>
                       </>
                     )}

@@ -592,9 +592,10 @@ async def get_dashboard_stats():
     # Actual collected rent (sum of all recorded rent payments)
     total_rental_income = sum(rp.get('amount', 0) for rp in rent_payments)
     
-    # Pending dues from closed leases are treated as additional expenses (loss)
+    # Pending dues from closed leases NET of deposit withheld (only unrecovered amount = real loss)
     pending_dues_from_closed = sum(
-        t.get('pending_dues_at_exit', 0) for t in tenants if t.get('lease_status') == 'ended'
+        max(0, (t.get('pending_dues_at_exit', 0) or 0) - (t.get('deposit_withheld', 0) or 0))
+        for t in tenants if t.get('lease_status') == 'ended'
     )
     direct_expenses = sum(e.get('amount', 0) for e in expenses)
     total_expenses_amount = direct_expenses + pending_dues_from_closed
