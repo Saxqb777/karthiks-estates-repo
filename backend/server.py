@@ -116,6 +116,13 @@ class RentPaymentCreate(BaseModel):
     year: int
     notes: str = ""
 
+class RentPaymentUpdate(BaseModel):
+    amount: Optional[float] = None
+    payment_date: Optional[str] = None
+    month: Optional[int] = None
+    year: Optional[int] = None
+    notes: Optional[str] = None
+
 class Expense(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -301,6 +308,23 @@ async def get_rent_payments(tenant_id: Optional[str] = None, property_id: Option
         query["property_id"] = property_id
     payments = await db.rent_payments.find(query, {"_id": 0}).sort("payment_date", -1).to_list(1000)
     return payments
+
+@api_router.patch("/rent-payments/{payment_id}", response_model=RentPayment)
+async def update_rent_payment(payment_id: str, input: RentPaymentUpdate):
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    
+    result = await db.rent_payments.update_one(
+        {"id": payment_id},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Rent payment not found")
+    
+    updated_payment = await db.rent_payments.find_one({"id": payment_id}, {"_id": 0})
+    return updated_payment
 
 @api_router.delete("/rent-payments/{payment_id}")
 async def delete_rent_payment(payment_id: str):

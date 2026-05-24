@@ -13,7 +13,8 @@ const API = `${BACKEND_URL}/api`;
 
 const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, onSuccess }) {
+export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, onSuccess, editPayment }) {
+  const isEditMode = !!editPayment;
   const today = new Date();
   const [formData, setFormData] = useState({
     amount: '',
@@ -25,7 +26,15 @@ export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, on
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (tenant && open) {
+    if (editPayment && open) {
+      setFormData({
+        amount: editPayment.amount?.toString() || '',
+        payment_date: editPayment.payment_date ? editPayment.payment_date.split('T')[0] : '',
+        month: editPayment.month?.toString() || '1',
+        year: editPayment.year?.toString() || today.getFullYear().toString(),
+        notes: editPayment.notes || ''
+      });
+    } else if (tenant && open) {
       const now = new Date();
       setFormData({
         amount: tenant.monthly_rent?.toString() || '',
@@ -35,30 +44,41 @@ export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, on
         notes: ''
       });
     }
-  }, [tenant, open]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant, editPayment, open]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!tenant) return;
     setLoading(true);
 
     try {
-      await axios.post(`${API}/rent-payments`, {
-        tenant_id: tenant.id,
-        property_id: tenant.property_id,
-        amount: parseFloat(formData.amount),
-        payment_date: formData.payment_date,
-        month: parseInt(formData.month),
-        year: parseInt(formData.year),
-        notes: formData.notes
-      });
-
-      toast.success(`Rent payment recorded for ${tenant.name}`);
+      if (isEditMode) {
+        await axios.patch(`${API}/rent-payments/${editPayment.id}`, {
+          amount: parseFloat(formData.amount),
+          payment_date: formData.payment_date,
+          month: parseInt(formData.month),
+          year: parseInt(formData.year),
+          notes: formData.notes
+        });
+        toast.success('Payment updated');
+      } else {
+        if (!tenant) return;
+        await axios.post(`${API}/rent-payments`, {
+          tenant_id: tenant.id,
+          property_id: tenant.property_id,
+          amount: parseFloat(formData.amount),
+          payment_date: formData.payment_date,
+          month: parseInt(formData.month),
+          year: parseInt(formData.year),
+          notes: formData.notes
+        });
+        toast.success(`Rent payment recorded for ${tenant.name}`);
+      }
       onOpenChange(false);
       onSuccess();
     } catch (error) {
-      console.error('Error recording payment:', error);
-      toast.error('Failed to record payment');
+      console.error('Error saving payment:', error);
+      toast.error(isEditMode ? 'Failed to update payment' : 'Failed to record payment');
     } finally {
       setLoading(false);
     }
@@ -71,10 +91,10 @@ export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, on
       <DialogContent className="sm:max-w-[500px] bg-white" data-testid="record-payment-dialog">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold text-[#2C4C3B]">
-            Record Rent Payment
+            {isEditMode ? 'Edit Rent Payment' : 'Record Rent Payment'}
           </DialogTitle>
           <DialogDescription className="text-[#7D7D7D]">
-            Recording payment for <span className="font-semibold text-[#2C4C3B]">{tenant?.name}</span>
+            {isEditMode ? 'Update the payment record details.' : (<>Recording payment for <span className="font-semibold text-[#2C4C3B]">{tenant?.name}</span></>)}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
@@ -170,7 +190,7 @@ export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, on
               className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white"
               data-testid="submit-payment-btn"
             >
-              {loading ? 'Recording...' : 'Record Payment'}
+              {loading ? (isEditMode ? 'Updating...' : 'Recording...') : (isEditMode ? 'Update Payment' : 'Record Payment')}
             </Button>
           </DialogFooter>
         </form>

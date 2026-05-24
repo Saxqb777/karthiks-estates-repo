@@ -3,8 +3,9 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
-import { Trash } from '@phosphor-icons/react';
+import { Trash, PencilSimple } from '@phosphor-icons/react';
 import ConfirmDialog from './ConfirmDialog';
+import RecordRentPaymentDialog from './RecordRentPaymentDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -15,6 +16,8 @@ export default function PaymentHistoryDialog({ open, onOpenChange, tenant, onUpd
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [editPayment, setEditPayment] = useState(null);
+  const [showEdit, setShowEdit] = useState(false);
 
   const fetchPayments = async () => {
     if (!tenant) return;
@@ -112,15 +115,26 @@ export default function PaymentHistoryDialog({ open, onOpenChange, tenant, onUpd
                         {payment.notes || '-'}
                       </td>
                       <td className="py-3 px-2 text-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteId(payment.id)}
-                          className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
-                          data-testid={`delete-payment-${payment.id}`}
-                        >
-                          <Trash size={16} />
-                        </Button>
+                        <div className="flex items-center justify-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => { setEditPayment(payment); setShowEdit(true); }}
+                            className="text-[#2C4C3B] hover:text-[#1F362A] hover:bg-[#2C4C3B]/10"
+                            data-testid={`edit-payment-${payment.id}`}
+                          >
+                            <PencilSimple size={16} />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteId(payment.id)}
+                            className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
+                            data-testid={`delete-payment-${payment.id}`}
+                          >
+                            <Trash size={16} />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -137,6 +151,13 @@ export default function PaymentHistoryDialog({ open, onOpenChange, tenant, onUpd
           confirmLabel="Yes, Delete"
           onConfirm={performDelete}
           testId="confirm-delete-payment"
+        />
+        <RecordRentPaymentDialog
+          open={showEdit}
+          onOpenChange={(o) => { setShowEdit(o); if (!o) setEditPayment(null); }}
+          tenant={tenant}
+          editPayment={editPayment}
+          onSuccess={() => { fetchPayments(); if (onUpdated) onUpdated(); }}
         />
       </DialogContent>
     </Dialog>
