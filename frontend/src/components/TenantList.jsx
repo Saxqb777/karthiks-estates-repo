@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Trash, Phone, PencilSimple, CurrencyInr, Receipt, Warning } from '@phosphor-icons/react';
+import { Trash, Phone, PencilSimple, CurrencyInr, Receipt } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -133,21 +133,7 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
                   )}
                 </td>
                 <td className="py-4 px-3 text-sm">
-                  <div>
-                    <p className="text-[#2E2E2E]">{nextDue.date.toLocaleDateString('en-IN')}</p>
-                    {nextDue.status === 'overdue' && (
-                      <span className="inline-flex items-center text-xs text-[#D96C4E] font-semibold">
-                        <Warning size={12} className="mr-1" />
-                        {nextDue.daysOverdue} day(s) overdue
-                      </span>
-                    )}
-                    {nextDue.status === 'upcoming' && (
-                      <span className="text-xs text-[#7D7D7D]">in {nextDue.daysAway} day(s)</span>
-                    )}
-                    {nextDue.status === 'paid' && (
-                      <span className="text-xs text-[#7BA38A] font-medium">Paid this month</span>
-                    )}
-                  </div>
+                  <p className="text-[#2E2E2E]">{nextDue.date.toLocaleDateString('en-IN')}</p>
                 </td>
                 <td className="py-4 px-3">
                   <div className="flex items-center justify-center gap-1">
