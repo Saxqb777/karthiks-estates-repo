@@ -574,6 +574,8 @@ async def get_dashboard_stats():
     tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
     expenses = await db.expenses.find({}, {"_id": 0}).to_list(1000)
     rent_payments = await db.rent_payments.find({}, {"_id": 0}).to_list(10000)
+    utility_payments = await db.utility_payments.find({}, {"_id": 0}).to_list(1000)
+    property_taxes = await db.property_taxes.find({}, {"_id": 0}).to_list(1000)
     
     total_purchase_price = sum(p.get('purchase_price', 0) for p in properties)
     
@@ -597,8 +599,12 @@ async def get_dashboard_stats():
         max(0, (t.get('pending_dues_at_exit', 0) or 0) - (t.get('deposit_withheld', 0) or 0))
         for t in tenants if t.get('lease_status') == 'ended'
     )
+    
+    # All actual money spent
     direct_expenses = sum(e.get('amount', 0) for e in expenses)
-    total_expenses_amount = direct_expenses + pending_dues_from_closed
+    paid_utilities = sum(u.get('amount', 0) for u in utility_payments if u.get('paid_status'))
+    paid_taxes = sum(t.get('amount', 0) for t in property_taxes if t.get('paid_status'))
+    total_expenses_amount = direct_expenses + paid_utilities + paid_taxes + pending_dues_from_closed
     
     # Active security deposits only (closed tenants' deposits are settled, not held)
     total_security_deposits = sum(
