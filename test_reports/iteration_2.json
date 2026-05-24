@@ -1,0 +1,40 @@
+{
+  "summary": "Iteration 2 - Verified datetime bug fix and Promise.allSettled in Dashboard.jsx. 23/23 backend pytest tests pass (added 4 new regression tests for YYYY-MM-DD format on /api/dashboard/stats and /api/reminders). Full E2E UI flow PASS: created property via UI with YYYY-MM-DD date -> stats updated from ₹6.49L to ₹72.22L (appreciation calculated correctly) -> tenant/expense/utility/tax added -> 3 reminders rendered (overdue utility with YYYY-MM-DD due_date works) -> both CSV exports downloaded. Critical bug from iteration_1 is fully resolved.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": [
+      {"screen": "All Add* dialogs (Property, Tenant, Expense, Utility)", "issues": ["Uses native browser HTML5 date picker (input type='date') instead of shadcn Calendar/Popover component - inconsistent with rest of shadcn-based UI"]},
+      {"screen": "Add* dialogs", "issues": ["Console warning: 'Missing Description or aria-describedby for DialogContent' - accessibility issue; add DialogDescription to each DialogContent"]},
+      {"screen": "Dashboard (dev mode only)", "issues": ["Benign 'ResizeObserver loop completed with undelivered notifications' triggers CRA dev-error overlay which blocks user interaction during dev. Production build should be unaffected, but consider adding global suppression in index.js to improve dev experience."]}
+    ]
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_api.py",
+    "/app/test_reports/pytest/results.xml"
+  ],
+  "action_items": [
+    "(Optional) Add DialogDescription to each Add* dialog to fix a11y console warnings",
+    "(Optional) Replace native date inputs with shadcn Calendar+Popover component for visual consistency",
+    "(Optional) Suppress benign ResizeObserver dev-overlay errors in development"
+  ],
+  "critical_code_review_comments": [
+    "server.py is 495 lines - approaching the 700-line threshold; consider splitting routes into modules (properties, tenants, expenses, utilities, taxes, dashboard) as features grow",
+    "Property/Tenant/Expense/UtilityPayment/PropertyTax all store dates as `str` fields. Mixing ISO-with-tz and YYYY-MM-DD inputs is now handled in dashboard/reminders, but other future date comparisons may hit the same naive-datetime bug. Consider standardising to store as `datetime` (Pydantic) and let Pydantic serialise, or apply the same tzinfo guard wherever fromisoformat is used.",
+    "BASE_URL fallback added in test_api.py reads /app/frontend/.env when env var is not exported (test runner doesn't auto-load it). Working as intended."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_api.py (added TestDateFormatRegression class with 4 tests; added .env fallback)"
+  ],
+  "success_rate": {"backend": "100% (23/23)", "frontend": "100% (E2E flow complete)"},
+  "test_credentials": "No auth required",
+  "seed_data_creation": "E2E test created: 1 property (E2E_Townhouse_*), 1 tenant, 1 expense, 1 utility (overdue), 1 tax record. Pytest creates and cleans up TEST_ prefixed data automatically.",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "Critical datetime bug from iteration_1 is fixed and regression-tested. /api/dashboard/stats and /api/reminders now correctly handle both YYYY-MM-DD and ISO-with-tz date formats. Dashboard.jsx uses Promise.allSettled. Backend test file at /app/backend/tests/test_api.py covers all endpoints + regression scenarios. Database currently retains E2E_Townhouse_* property and a few associated records from UI test run.",
+  "rca_of_iteration_1_issue": "Root cause: backend stored purchase_date/due_date as raw strings from UI. UI sent YYYY-MM-DD (no timezone), so datetime.fromisoformat() returned a naive datetime. Comparing naive datetime with datetime.now(timezone.utc) raised TypeError -> 500. Fix verified: server.py lines 369-372 and 413-417 add `if dt.tzinfo is None: dt = dt.replace(tzinfo=timezone.utc)` guard before comparison."
+}
