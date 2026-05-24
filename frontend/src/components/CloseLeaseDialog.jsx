@@ -30,7 +30,6 @@ export default function CloseLeaseDialog({ open, onOpenChange, tenant, onSuccess
       try {
         const res = await axios.get(`${API}/tenants/${tenant.id}/pending-dues-estimate`);
         setEstimate(res.data);
-        // Default: pending dues = estimated amount, deposit withheld = min(estimate, deposit), refunded = remaining
         const dues = res.data.estimated_amount || 0;
         const deposit = tenant.security_deposit || 0;
         const withheld = Math.min(dues, deposit);
@@ -98,20 +97,60 @@ export default function CloseLeaseDialog({ open, onOpenChange, tenant, onSuccess
           <form onSubmit={handleSubmit}>
             <div className="space-y-4 py-4">
               {/* Auto-calculated estimate info */}
-              {estimate && estimate.missing_count > 0 && (
+              {estimate && estimate.estimated_amount > 0 && (
                 <div className="p-4 bg-[#F7F5F0] border border-[#E6E2D8] rounded-lg">
-                  <div className="flex items-start gap-2">
+                  <div className="flex items-start gap-2 mb-3">
                     <Info size={20} className="text-[#D96C4E] mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-[#2E2E2E] mb-1">
-                        Auto-calculated: {estimate.missing_count} unpaid month(s) × ₹{estimate.monthly_rent.toLocaleString('en-IN')} = ₹{estimate.estimated_amount.toLocaleString('en-IN')}
+                      <p className="text-sm font-semibold text-[#2E2E2E] mb-1">
+                        Auto-calculated pending dues: ₹{estimate.estimated_amount.toLocaleString('en-IN')}
                       </p>
-                      <p className="text-xs text-[#7D7D7D]">
-                        Missing: {estimate.missing_months.slice(0, 6).map(m => `${monthNames[m.month - 1]} ${m.year}`).join(', ')}
-                        {estimate.missing_months.length > 6 ? ` +${estimate.missing_months.length - 6} more` : ''}
-                      </p>
+                      <div className="text-xs text-[#7D7D7D] grid grid-cols-3 gap-2 mt-2">
+                        <div>
+                          <span className="block uppercase tracking-wider text-[10px] font-bold">Expected</span>
+                          <span className="text-sm font-semibold text-[#2E2E2E]">₹{estimate.total_expected.toLocaleString('en-IN')}</span>
+                          <span className="block text-[10px]">{estimate.expected_months} month(s) × ₹{estimate.monthly_rent.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div>
+                          <span className="block uppercase tracking-wider text-[10px] font-bold">Received</span>
+                          <span className="text-sm font-semibold text-[#7BA38A]">₹{estimate.total_received.toLocaleString('en-IN')}</span>
+                        </div>
+                        <div>
+                          <span className="block uppercase tracking-wider text-[10px] font-bold">Balance</span>
+                          <span className="text-sm font-semibold text-[#D96C4E]">₹{estimate.estimated_amount.toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
+                  {estimate.month_breakdown && estimate.month_breakdown.length > 0 && (
+                    <details className="text-xs text-[#7D7D7D]">
+                      <summary className="cursor-pointer hover:text-[#2C4C3B] font-medium uppercase tracking-wider text-[10px]">
+                        View month-by-month breakdown
+                      </summary>
+                      <div className="mt-2 max-h-40 overflow-y-auto border-t border-[#E6E2D8] pt-2">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b border-[#E6E2D8]">
+                              <th className="text-left py-1 font-medium">Month</th>
+                              <th className="text-right py-1 font-medium">Expected</th>
+                              <th className="text-right py-1 font-medium">Received</th>
+                              <th className="text-right py-1 font-medium">Balance</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {estimate.month_breakdown.map((m, idx) => (
+                              <tr key={idx} className={m.balance > 0 ? 'text-[#D96C4E]' : 'text-[#7BA38A]'}>
+                                <td className="py-1">{monthNames[m.month - 1]} {m.year}</td>
+                                <td className="py-1 text-right">₹{m.expected.toLocaleString('en-IN')}</td>
+                                <td className="py-1 text-right">₹{m.received.toLocaleString('en-IN')}</td>
+                                <td className="py-1 text-right font-semibold">₹{m.balance.toLocaleString('en-IN')}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
+                  )}
                 </div>
               )}
 

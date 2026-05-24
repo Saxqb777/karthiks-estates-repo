@@ -313,28 +313,37 @@ async def delete_tenant(tenant_id: str):
 
 @api_router.get("/tenants/{tenant_id}/pending-dues-estimate")
 async def estimate_pending_dues(tenant_id: str):
-    """Auto-calculate suggested pending dues based on missing months from lease_start to today."""
+    """Auto-calculate pending dues by comparing total expected rent vs total received.
+    Handles partial payments correctly (e.g., ₹2,000 paid when ₹4,000 was due).
+    """
     tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
     if not tenant:
         raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    monthly_rent = tenant.get('monthly_rent', 0)
     
     try:
         lease_start = datetime.fromisoformat(tenant['lease_start'])
         if lease_start.tzinfo is None:
             lease_start = lease_start.replace(tzinfo=IST)
     except (ValueError, KeyError):
-        return {"missing_months": [], "estimated_amount": 0.0, "monthly_rent": tenant.get('monthly_rent', 0)}
+        return {
+            "expected_months": 0,
+            "total_expected": 0.0,
+            "total_received": 0.0,
+            "estimated_amount": 0.0,
+            "monthly_rent": monthly_rent,
+            "month_breakdown": []
+        }
     
     today = now_ist()
-    monthly_rent = tenant.get('monthly_rent', 0)
     
-    # Build list of months from lease_start to today (inclusive of start month)
+    # Build list of months from lease_start to today (inclusive)
     expected_months = []
     cursor = datetime(lease_start.year, lease_start.month, 1, tzinfo=IST)
     end = datetime(today.year, today.month, 1, tzinfo=IST)
     while cursor <= end:
         expected_months.append((cursor.month, cursor.year))
-        # Move to next month
         if cursor.month == 12:
             cursor = cursor.replace(year=cursor.year + 1, month=1)
         else:
@@ -342,16 +351,37 @@ async def estimate_pending_dues(tenant_id: str):
     
     # Get all payments for this tenant
     payments = await db.rent_payments.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(10000)
-    paid_months = {(p['month'], p['year']) for p in payments}
     
-    missing = [{"month": m, "year": y} for (m, y) in expected_months if (m, y) not in paid_months]
-    estimated_amount = len(missing) * monthly_rent
+    # Sum payments by (month, year)
+    received_by_month = {}
+    for p in payments:
+        key = (p['month'], p['year'])
+        received_by_month[key] = received_by_month.get(key, 0) + (p.get('amount', 0) or 0)
+    
+    # Per-month breakdown showing expected vs received vs balance
+    month_breakdown = []
+    for (m, y) in expected_months:
+        received = received_by_month.get((m, y), 0)
+        balance = monthly_rent - received
+        month_breakdown.append({
+            "month": m,
+            "year": y,
+            "expected": monthly_rent,
+            "received": received,
+            "balance": balance
+        })
+    
+    total_expected = monthly_rent * len(expected_months)
+    total_received = sum(received_by_month.values())
+    pending = max(0, total_expected - total_received)
     
     return {
-        "missing_months": missing,
-        "estimated_amount": estimated_amount,
+        "expected_months": len(expected_months),
+        "total_expected": total_expected,
+        "total_received": total_received,
+        "estimated_amount": pending,
         "monthly_rent": monthly_rent,
-        "missing_count": len(missing)
+        "month_breakdown": month_breakdown
     }
 
 @api_router.post("/tenants/{tenant_id}/close-lease", response_model=Tenant)
