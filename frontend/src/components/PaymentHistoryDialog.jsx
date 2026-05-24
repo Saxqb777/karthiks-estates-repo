@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Button } from './ui/button';
 import { Trash } from '@phosphor-icons/react';
+import ConfirmDialog from './ConfirmDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -13,6 +14,7 @@ const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep
 export default function PaymentHistoryDialog({ open, onOpenChange, tenant, onUpdated }) {
   const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [deleteId, setDeleteId] = useState(null);
 
   const fetchPayments = async () => {
     if (!tenant) return;
@@ -35,16 +37,18 @@ export default function PaymentHistoryDialog({ open, onOpenChange, tenant, onUpd
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, tenant]);
 
-  const handleDelete = async (paymentId) => {
-    if (!window.confirm('Delete this payment record?')) return;
+  const performDelete = async () => {
+    if (!deleteId) return;
     try {
-      await axios.delete(`${API}/rent-payments/${paymentId}`);
+      await axios.delete(`${API}/rent-payments/${deleteId}`);
       toast.success('Payment deleted');
       fetchPayments();
       if (onUpdated) onUpdated();
     } catch (error) {
       console.error('Error deleting payment:', error);
       toast.error('Failed to delete payment');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -111,7 +115,7 @@ export default function PaymentHistoryDialog({ open, onOpenChange, tenant, onUpd
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(payment.id)}
+                          onClick={() => setDeleteId(payment.id)}
                           className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
                           data-testid={`delete-payment-${payment.id}`}
                         >
@@ -125,6 +129,15 @@ export default function PaymentHistoryDialog({ open, onOpenChange, tenant, onUpd
             </div>
           )}
         </div>
+        <ConfirmDialog
+          open={!!deleteId}
+          onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+          title="Delete this payment record?"
+          description="This will permanently remove the rent payment record. This action cannot be undone."
+          confirmLabel="Yes, Delete"
+          onConfirm={performDelete}
+          testId="confirm-delete-payment"
+        />
       </DialogContent>
     </Dialog>
   );

@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Trash, Check, X } from '@phosphor-icons/react';
 import { Button } from './ui/button';
+import ConfirmDialog from './ConfirmDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export default function PropertyTaxList({ taxes, properties, onRefresh }) {
+  const [deleteId, setDeleteId] = useState(null);
+
   const handleTogglePaid = async (taxId, currentStatus) => {
     try {
       await axios.patch(`${API}/property-taxes/${taxId}`, {
@@ -22,16 +25,17 @@ export default function PropertyTaxList({ taxes, properties, onRefresh }) {
     }
   };
 
-  const handleDelete = async (taxId) => {
-    if (!window.confirm('Are you sure you want to delete this tax record?')) return;
-    
+  const performDelete = async () => {
+    if (!deleteId) return;
     try {
-      await axios.delete(`${API}/property-taxes/${taxId}`);
+      await axios.delete(`${API}/property-taxes/${deleteId}`);
       toast.success('Tax record deleted successfully');
       onRefresh();
     } catch (error) {
       console.error('Error deleting tax record:', error);
       toast.error('Failed to delete tax record');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -113,7 +117,7 @@ export default function PropertyTaxList({ taxes, properties, onRefresh }) {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDelete(tax.id)}
+                  onClick={() => setDeleteId(tax.id)}
                   className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
                   data-testid={`delete-tax-${tax.id}`}
                 >
@@ -124,6 +128,15 @@ export default function PropertyTaxList({ taxes, properties, onRefresh }) {
           ))}
         </tbody>
       </table>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        title="Delete this tax record?"
+        description="This will permanently remove the property tax record. This action cannot be undone."
+        confirmLabel="Yes, Delete"
+        onConfirm={performDelete}
+        testId="confirm-delete-tax"
+      />
     </div>
   );
 }

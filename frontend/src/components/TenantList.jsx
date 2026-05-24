@@ -1,27 +1,27 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Trash, Phone, PencilSimple, CurrencyInr, Receipt, Warning } from '@phosphor-icons/react';
 import { Button } from './ui/button';
+import ConfirmDialog from './ConfirmDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export default function TenantList({ tenants, properties, rentPayments, onRefresh, onEdit, onRecordPayment, onViewHistory }) {
-  const handleDelete = async (tenant) => {
-    let confirmMsg = `Are you sure you want to delete tenant "${tenant.name}"?`;
-    if (tenant.security_deposit > 0) {
-      confirmMsg += `\n\n⚠️ Reminder: A security deposit of ₹${tenant.security_deposit.toLocaleString('en-IN')} may need to be refunded to this tenant.`;
-    }
-    if (!window.confirm(confirmMsg)) return;
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
+  const performDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await axios.delete(`${API}/tenants/${tenant.id}`);
+      await axios.delete(`${API}/tenants/${deleteTarget.id}`);
       toast.success('Tenant deleted successfully');
       onRefresh();
     } catch (error) {
       console.error('Error deleting tenant:', error);
       toast.error('Failed to delete tenant');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -180,7 +180,7 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleDelete(tenant)}
+                      onClick={() => setDeleteTarget(tenant)}
                       className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
                       title="Delete Tenant"
                       data-testid={`delete-tenant-${tenant.id}`}
@@ -194,6 +194,19 @@ export default function TenantList({ tenants, properties, rentPayments, onRefres
           })}
         </tbody>
       </table>
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+        title={`Delete tenant "${deleteTarget?.name}"?`}
+        description={
+          deleteTarget && deleteTarget.security_deposit > 0
+            ? `This will permanently remove all tenant records.\n\n⚠️ A security deposit of ₹${deleteTarget.security_deposit.toLocaleString('en-IN')} may need to be refunded to this tenant.`
+            : 'This will permanently remove all tenant records. This action cannot be undone.'
+        }
+        confirmLabel="Yes, Delete Tenant"
+        onConfirm={performDelete}
+        testId="confirm-delete-tenant"
+      />
     </div>
   );
 }

@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { MapPin, Calendar, TrendUp, PencilSimple, Trash, House } from '@phosphor-icons/react';
 import { Button } from './ui/button';
+import ConfirmDialog from './ConfirmDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export default function PropertyCard({ property, onRefresh, onEdit }) {
+  const [showDelete, setShowDelete] = useState(false);
+
   const calculateCurrentValue = () => {
     const purchaseDate = new Date(property.purchase_date);
     const now = new Date();
@@ -20,9 +23,7 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
   const appreciation = currentValue - property.purchase_price;
   const appreciationPercent = (appreciation / property.purchase_price) * 100;
 
-  const handleDelete = async () => {
-    if (!window.confirm(`Are you sure you want to delete "${property.name}"? This action cannot be undone.`)) return;
-
+  const performDelete = async () => {
     try {
       await axios.delete(`${API}/properties/${property.id}`);
       toast.success('Property deleted successfully');
@@ -62,7 +63,7 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
             <Button
               size="sm"
               variant="ghost"
-              onClick={handleDelete}
+              onClick={() => setShowDelete(true)}
               className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
               data-testid={`delete-property-${property.id}`}
             >
@@ -120,6 +121,15 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
           </div>
         </div>
       </div>
+      <ConfirmDialog
+        open={showDelete}
+        onOpenChange={setShowDelete}
+        title={`Delete "${property.name}"?`}
+        description="This will permanently remove the property and all associated records. This action cannot be undone."
+        confirmLabel="Yes, Delete Property"
+        onConfirm={performDelete}
+        testId={`confirm-delete-property-${property.id}`}
+      />
     </div>
   );
 }

@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import { Trash, Check, X, Drop, Lightning } from '@phosphor-icons/react';
 import { Button } from './ui/button';
+import ConfirmDialog from './ConfirmDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 export default function UtilityPaymentsList({ utilities, properties, onRefresh }) {
+  const [deleteId, setDeleteId] = useState(null);
+
   const handleTogglePaid = async (utilityId, currentStatus) => {
     try {
       await axios.patch(`${API}/utility-payments/${utilityId}`, {
@@ -22,16 +25,17 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
     }
   };
 
-  const handleDelete = async (utilityId) => {
-    if (!window.confirm('Are you sure you want to delete this payment record?')) return;
-    
+  const performDelete = async () => {
+    if (!deleteId) return;
     try {
-      await axios.delete(`${API}/utility-payments/${utilityId}`);
+      await axios.delete(`${API}/utility-payments/${deleteId}`);
       toast.success('Payment record deleted successfully');
       onRefresh();
     } catch (error) {
       console.error('Error deleting utility payment:', error);
       toast.error('Failed to delete payment record');
+    } finally {
+      setDeleteId(null);
     }
   };
 
@@ -136,7 +140,7 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => handleDelete(utility.id)}
+                  onClick={() => setDeleteId(utility.id)}
                   className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
                   data-testid={`delete-utility-${utility.id}`}
                 >
@@ -147,6 +151,15 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
           ))}
         </tbody>
       </table>
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        title="Delete this payment record?"
+        description="This will permanently remove the utility payment record. This action cannot be undone."
+        confirmLabel="Yes, Delete"
+        onConfirm={performDelete}
+        testId="confirm-delete-utility"
+      />
     </div>
   );
 }
