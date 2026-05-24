@@ -220,11 +220,9 @@ export default function Dashboard() {
         </div>
 
         {/* Payment Reminders */}
-        {reminders.length > 0 && (
-          <div className="mb-8">
-            <PaymentReminders reminders={reminders} onRefresh={fetchAllData} />
-          </div>
-        )}
+        <div className="mb-8">
+          <PaymentReminders reminders={reminders} onRefresh={fetchAllData} />
+        </div>
 
         {/* Properties Section */}
         <section className="mb-8">

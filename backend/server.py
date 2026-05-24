@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
+import asyncio
 import logging
+import resend
 from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
@@ -20,6 +22,11 @@ load_dotenv(ROOT_DIR / '.env')
 mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
+
+# Resend setup
+resend.api_key = os.environ.get('RESEND_API_KEY')
+SENDER_EMAIL = os.environ.get('SENDER_EMAIL', 'onboarding@resend.dev')
+NOTIFICATION_EMAIL = os.environ.get('NOTIFICATION_EMAIL')
 
 # Create the main app without a prefix
 app = FastAPI()
@@ -435,6 +442,117 @@ async def get_payment_reminders():
         })
     
     return reminders
+
+# ============ EMAIL NOTIFICATIONS ============
+
+def build_reminder_email_html(reminders: list) -> str:
+    """Build an HTML email body summarizing payment reminders."""
+    if not reminders:
+        return """
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2C4C3B;">Property Dashboard - All Clear!</h2>
+            <p style="color: #2E2E2E;">Great news - no pending payments or overdue items at this time.</p>
+            <p style="color: #7D7D7D; font-size: 12px; margin-top: 30px;">Pattukottai Property Dashboard</p>
+        </div>
+        """
+
+    rows_html = ""
+    for r in reminders:
+        priority_color = "#D96C4E" if r.get("priority") == "high" else "#7D7D7D"
+        rows_html += f"""
+        <tr>
+            <td style="padding: 12px; border-bottom: 1px solid #E6E2D8;">
+                <span style="text-transform: uppercase; font-size: 11px; font-weight: bold; color: {priority_color}; letter-spacing: 2px;">{r.get('type', '').upper()}</span>
+            </td>
+            <td style="padding: 12px; border-bottom: 1px solid #E6E2D8; color: #2E2E2E;">{r.get('message', '')}</td>
+        </tr>
+        """
+
+    return f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #F7F5F0;">
+        <div style="background-color: #FFFFFF; padding: 24px; border: 1px solid #E6E2D8; border-radius: 8px;">
+            <h2 style="color: #2C4C3B; margin: 0 0 8px 0;">Property Payment Reminders</h2>
+            <p style="color: #7D7D7D; margin: 0 0 20px 0;">Pattukottai, Tamil Nadu &middot; {len(reminders)} pending item(s)</p>
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background-color: #F7F5F0;">
+                        <th style="text-align: left; padding: 12px; color: #7D7D7D; font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">Type</th>
+                        <th style="text-align: left; padding: 12px; color: #7D7D7D; font-size: 11px; text-transform: uppercase; letter-spacing: 2px;">Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows_html}
+                </tbody>
+            </table>
+            <p style="color: #7D7D7D; font-size: 12px; margin-top: 24px;">Sent from your Property Dashboard</p>
+        </div>
+    </div>
+    """
+
+
+@api_router.post("/send-reminders-email")
+async def send_reminders_email():
+    """Send a manual email with all current payment reminders."""
+    if not resend.api_key:
+        raise HTTPException(status_code=500, detail="Resend API key not configured")
+    if not NOTIFICATION_EMAIL:
+        raise HTTPException(status_code=500, detail="Notification email not configured")
+
+    # Reuse the same logic as /reminders
+    reminders = []
+
+    tenants = await db.tenants.find({"payment_status": "pending"}, {"_id": 0}).to_list(1000)
+    for tenant in tenants:
+        reminders.append({
+            "type": "rent",
+            "priority": "high",
+            "message": f"Rent pending from {tenant['name']} - ₹{tenant['monthly_rent']}",
+        })
+
+    utilities = await db.utility_payments.find({"paid_status": False}, {"_id": 0}).to_list(1000)
+    today = datetime.now(timezone.utc)
+    for utility in utilities:
+        due_date = datetime.fromisoformat(utility['due_date'])
+        if due_date.tzinfo is None:
+            due_date = due_date.replace(tzinfo=timezone.utc)
+        if due_date < today:
+            reminders.append({
+                "type": "utility",
+                "priority": "medium",
+                "message": f"Overdue {utility['utility_type']} bill - ₹{utility['amount']}",
+            })
+
+    taxes = await db.property_taxes.find({"paid_status": False}, {"_id": 0}).to_list(1000)
+    for tax in taxes:
+        reminders.append({
+            "type": "tax",
+            "priority": "high",
+            "message": f"Property tax {tax['year']} unpaid - ₹{tax['amount']}",
+        })
+
+    html_content = build_reminder_email_html(reminders)
+    subject = f"Property Reminders - {len(reminders)} pending item(s)" if reminders else "Property Reminders - All Clear"
+
+    params = {
+        "from": SENDER_EMAIL,
+        "to": [NOTIFICATION_EMAIL],
+        "subject": subject,
+        "html": html_content,
+    }
+
+    try:
+        email = await asyncio.to_thread(resend.Emails.send, params)
+        return {
+            "status": "success",
+            "message": f"Email sent to {NOTIFICATION_EMAIL}",
+            "email_id": email.get("id"),
+            "reminders_count": len(reminders),
+        }
+    except Exception as e:
+        logger.error(f"Failed to send reminder email: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to send email: {str(e)}")
+
+
 
 # ============ CSV EXPORT ============
 
