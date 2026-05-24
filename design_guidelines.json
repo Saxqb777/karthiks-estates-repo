@@ -1,0 +1,105 @@
+{
+  "theme": "light",
+  "archetype": "1_organic_and_earthy",
+  "design_context": "dashboard",
+  "typography": {
+    "font_family": {
+      "headings": "Work Sans",
+      "body": "Manrope",
+      "mono": "JetBrains Mono"
+    },
+    "scales": {
+      "h1": "text-3xl sm:text-4xl tracking-tight leading-tight",
+      "h2": "text-2xl sm:text-3xl tracking-tight",
+      "h3": "text-xl sm:text-2xl",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base leading-relaxed",
+      "small": "text-sm",
+      "tiny_label": "text-xs uppercase tracking-[0.2em] font-bold"
+    },
+    "rules": [
+      "No Inter, Roboto, or Open Sans for headings.",
+      "Variable weights for emphasis rather than just bolding.",
+      "Headings strictly use tight letter spacing.",
+      "Use small uppercase tracking for overlines, metric labels, and table headers."
+    ]
+  },
+  "colors": {
+    "palette": {
+      "background": "#F7F5F0",
+      "surface": "#FFFFFF",
+      "primary": "#2C4C3B",
+      "primary_hover": "#1F362A",
+      "secondary": "#D96C4E",
+      "secondary_hover": "#C2583D",
+      "accent_positive": "#7BA38A",
+      "accent_negative": "#D96C4E",
+      "text_main": "#2E2E2E",
+      "text_muted": "#7D7D7D",
+      "border": "#E6E2D8",
+      "border_hover": "#D1CBBF"
+    },
+    "rules": [
+      "Avoid pure #000000 or #FFFFFF if possible; surfaces are slightly warm off-white, backgrounds are warm sand.",
+      "Never use muddy gray transparency.",
+      "Hover states must be lighter/darker hues of active state, not generic gray.",
+      "Accent positive for live appreciation, accent negative for expenses."
+    ]
+  },
+  "surfaces_and_spacing": {
+    "spacing_scale": "p-1, p-2, p-4, p-6, p-8, p-12",
+    "dashboard_cards": "Flat solid background, 1px subtle border (border-[#E6E2D8]), no shadow. Max 8px border-radius.",
+    "hover_effects": "-translate-y-1, shadow-lg, border color darkens.",
+    "layout_grid": {
+      "strategy": "Control Room Grid",
+      "classes": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "alignment": "Every pixel must be utilized, h-full on children."
+    }
+  },
+  "components": {
+    "strategy": "Shadcn/UI heavily customized to remove 'Vercel-look'.",
+    "buttons": "Rounded-md (max 8px radius). Primary buttons use #2C4C3B with crisp white text. Hover uses #1F362A.",
+    "cards": "Dense, rectangular, flat layout, 1px borders.",
+    "charts": "Shadcn Recharts customized with organic palette (Primary green and Terracotta).",
+    "tables": "Clean, dense rows, uppercase tracked column headers, subtle row borders."
+  },
+  "media": {
+    "images": [
+      {
+        "category": "Property 1 Thumbnail",
+        "url": "https://images.unsplash.com/photo-1628012209120-d9db7abf7eab?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjB0b3duaG91c2UlMjBhcmNoaXRlY3R1cmUlMjBleHRlcmlvcnxlbnwwfHx8fDE3Nzk2MDk5MDV8MA&ixlib=rb-4.1.0&q=85",
+        "description": "White concrete modern townhouse exterior daytime"
+      },
+      {
+        "category": "Property 2 Thumbnail",
+        "url": "https://images.unsplash.com/photo-1627141234469-24711efb373c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODh8MHwxfHNlYXJjaHwyfHxtb2Rlcm4lMjB0b3duaG91c2UlMjBhcmNoaXRlY3R1cmUlMjBleHRlcmlvcnxlbnwwfHx8fDE3Nzk2MDk5MDV8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Blue and white concrete modern townhouse"
+      },
+      {
+        "category": "Dashboard Avatar / Header Background (Optional)",
+        "url": "https://images.unsplash.com/photo-1772955896258-00b742805c73?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1MTN8MHwxfHNlYXJjaHwxfHxpbmRpYW4lMjBjaXR5JTIwc3RyZWV0JTIwYnVpbGRpbmclMjBsYW5kc2NhcGV8ZW58MHx8fHwxNzc5NjA5OTA1fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Indian street landscape for local context or subtle header texture"
+      }
+    ]
+  },
+  "motion": {
+    "hover": "transition-all duration-200 ease-in-out",
+    "entrance": "staggered fade-in and slight slide-up for dashboard widgets",
+    "rules": "Respect prefers-reduced-motion. Animations for feedback, not distraction."
+  },
+  "accessibility": {
+    "contrast": "Ensure minimum 4.5:1 ratio for normal text. Use APCA preferred.",
+    "testing": "All interactive elements must have data-testid (e.g., data-testid='export-csv-button').",
+    "focus": "focus:ring-2 focus:ring-[#2C4C3B] focus:ring-offset-2 focus:ring-offset-[#F7F5F0]"
+  },
+  "instructions_to_main_agent": [
+    "Build a 'Control Room' style dashboard displaying financial metrics for two townhouses in Pattukottai.",
+    "Apply 'Work Sans' font for headings and 'Manrope' for body text (import via Google Fonts).",
+    "Use Phosphor icons (@phosphor-icons/react) for dashboard iconography.",
+    "Implement Shadcn charts to show income vs. expenses, and property appreciation.",
+    "Use a top navigation bar with clear title and user actions (Export Data, Settings).",
+    "Avoid the default 'tech-SaaS' look. The aesthetic should feel grounded, wealthy, and stable (Archetype 1: Organic & Earthy).",
+    "Never use generic card drop shadows, use 1px borders with warm #E6E2D8 tone.",
+    "Ensure the dashboard uses the provided real-world image URLs for the property thumbnails, never placeholders."
+  ]
+}
