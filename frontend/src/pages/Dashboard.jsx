@@ -49,6 +49,28 @@ export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddUtility, setShowAddUtility] = useState(false);
   const [showAddTax, setShowAddTax] = useState(false);
+  const [editingProperty, setEditingProperty] = useState(null);
+  const [editingTenant, setEditingTenant] = useState(null);
+
+  const handleEditProperty = (property) => {
+    setEditingProperty(property);
+    setShowAddProperty(true);
+  };
+
+  const handleClosePropertyDialog = (open) => {
+    setShowAddProperty(open);
+    if (!open) setEditingProperty(null);
+  };
+
+  const handleEditTenant = (tenant) => {
+    setEditingTenant(tenant);
+    setShowAddTenant(true);
+  };
+
+  const handleCloseTenantDialog = (open) => {
+    setShowAddTenant(open);
+    if (!open) setEditingTenant(null);
+  };
 
   useEffect(() => {
     fetchAllData();
@@ -245,6 +267,7 @@ export default function Dashboard() {
                 key={property.id}
                 property={property}
                 onRefresh={fetchAllData}
+                onEdit={handleEditProperty}
               />
             ))}
           </div>
@@ -285,7 +308,7 @@ export default function Dashboard() {
                   Add Tenant
                 </Button>
               </div>
-              <TenantList tenants={tenants} properties={properties} onRefresh={fetchAllData} />
+              <TenantList tenants={tenants} properties={properties} onRefresh={fetchAllData} onEdit={handleEditTenant} />
             </div>
           </TabsContent>
 
@@ -348,14 +371,16 @@ export default function Dashboard() {
       {/* Dialogs */}
       <AddPropertyDialog
         open={showAddProperty}
-        onOpenChange={setShowAddProperty}
+        onOpenChange={handleClosePropertyDialog}
         onSuccess={fetchAllData}
+        editProperty={editingProperty}
       />
       <AddTenantDialog
         open={showAddTenant}
-        onOpenChange={setShowAddTenant}
+        onOpenChange={handleCloseTenantDialog}
         properties={properties}
         onSuccess={fetchAllData}
+        editTenant={editingTenant}
       />
       <AddExpenseDialog
         open={showAddExpense}

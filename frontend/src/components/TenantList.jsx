@@ -1,7 +1,7 @@
 import React from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Trash, Phone, Envelope } from '@phosphor-icons/react';
+import { Trash, Phone, Envelope, PencilSimple } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 import {
   Select,
@@ -14,7 +14,7 @@ import {
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
-export default function TenantList({ tenants, properties, onRefresh }) {
+export default function TenantList({ tenants, properties, onRefresh, onEdit }) {
   const handleStatusChange = async (tenantId, newStatus) => {
     try {
       await axios.patch(`${API}/tenants/${tenantId}`, {
@@ -138,15 +138,26 @@ export default function TenantList({ tenants, properties, onRefresh }) {
                 </Select>
               </td>
               <td className="py-4 px-4">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(tenant.id)}
-                  className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
-                  data-testid={`delete-tenant-${tenant.id}`}
-                >
-                  <Trash size={18} />
-                </Button>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEdit(tenant)}
+                    className="text-[#2C4C3B] hover:text-[#1F362A] hover:bg-[#2C4C3B]/10"
+                    data-testid={`edit-tenant-${tenant.id}`}
+                  >
+                    <PencilSimple size={18} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(tenant.id)}
+                    className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
+                    data-testid={`delete-tenant-${tenant.id}`}
+                  >
+                    <Trash size={18} />
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}
