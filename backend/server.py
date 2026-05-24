@@ -69,31 +69,52 @@ class Tenant(BaseModel):
     property_id: str
     name: str
     contact: str
-    email: Optional[str] = ""
     monthly_rent: float
+    security_deposit: float = 0.0
+    rent_due_day: int = 1  # Day of month rent is due (1-31)
     lease_start: str
     lease_end: str
-    payment_status: str  # "paid", "pending", "overdue"
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class TenantCreate(BaseModel):
     property_id: str
     name: str
     contact: str
-    email: Optional[str] = ""
     monthly_rent: float
+    security_deposit: float = 0.0
+    rent_due_day: int = 1
     lease_start: str
     lease_end: str
-    payment_status: str = "pending"
 
 class TenantUpdate(BaseModel):
     name: Optional[str] = None
     contact: Optional[str] = None
-    email: Optional[str] = None
     monthly_rent: Optional[float] = None
+    security_deposit: Optional[float] = None
+    rent_due_day: Optional[int] = None
     lease_start: Optional[str] = None
     lease_end: Optional[str] = None
-    payment_status: Optional[str] = None
+
+class RentPayment(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    tenant_id: str
+    property_id: str
+    amount: float
+    payment_date: str
+    month: int  # 1-12
+    year: int
+    notes: str = ""
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class RentPaymentCreate(BaseModel):
+    tenant_id: str
+    property_id: str
+    amount: float
+    payment_date: str
+    month: int
+    year: int
+    notes: str = ""
 
 class Expense(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -166,6 +187,7 @@ class DashboardStats(BaseModel):
     total_rental_income: float
     total_expenses: float
     net_profit: float
+    total_security_deposits: float
     properties_count: int
     tenants_count: int
 
@@ -259,6 +281,34 @@ async def delete_tenant(tenant_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Tenant not found")
     return {"message": "Tenant deleted successfully"}
+
+
+# ============ RENT PAYMENT ROUTES ============
+
+@api_router.post("/rent-payments", response_model=RentPayment)
+async def create_rent_payment(input: RentPaymentCreate):
+    payment_obj = RentPayment(**input.model_dump())
+    doc = payment_obj.model_dump()
+    await db.rent_payments.insert_one(doc)
+    return payment_obj
+
+@api_router.get("/rent-payments", response_model=List[RentPayment])
+async def get_rent_payments(tenant_id: Optional[str] = None, property_id: Optional[str] = None):
+    query = {}
+    if tenant_id:
+        query["tenant_id"] = tenant_id
+    if property_id:
+        query["property_id"] = property_id
+    payments = await db.rent_payments.find(query, {"_id": 0}).sort("payment_date", -1).to_list(1000)
+    return payments
+
+@api_router.delete("/rent-payments/{payment_id}")
+async def delete_rent_payment(payment_id: str):
+    result = await db.rent_payments.delete_one({"id": payment_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Rent payment not found")
+    return {"message": "Rent payment deleted successfully"}
+
 
 # ============ EXPENSE ROUTES ============
 
@@ -367,6 +417,7 @@ async def get_dashboard_stats():
     properties = await db.properties.find({}, {"_id": 0}).to_list(1000)
     tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
     expenses = await db.expenses.find({}, {"_id": 0}).to_list(1000)
+    rent_payments = await db.rent_payments.find({}, {"_id": 0}).to_list(10000)
     
     total_purchase_price = sum(p.get('purchase_price', 0) for p in properties)
     
@@ -382,8 +433,10 @@ async def get_dashboard_stats():
         total_current_value += current_value
     
     total_appreciation = total_current_value - total_purchase_price
-    total_rental_income = sum(t.get('monthly_rent', 0) for t in tenants) * 12  # Annual
+    # Actual collected rent (sum of all recorded rent payments)
+    total_rental_income = sum(rp.get('amount', 0) for rp in rent_payments)
     total_expenses_amount = sum(e.get('amount', 0) for e in expenses)
+    total_security_deposits = sum(t.get('security_deposit', 0) for t in tenants)
     
     net_profit = total_rental_income - total_expenses_amount
     
@@ -393,6 +446,7 @@ async def get_dashboard_stats():
         total_rental_income=total_rental_income,
         total_expenses=total_expenses_amount,
         net_profit=net_profit,
+        total_security_deposits=total_security_deposits,
         properties_count=len(properties),
         tenants_count=len(tenants)
     )
@@ -402,21 +456,35 @@ async def get_dashboard_stats():
 @api_router.get("/reminders")
 async def get_payment_reminders():
     reminders = []
+    today = datetime.now(timezone.utc)
+    current_month = today.month
+    current_year = today.year
     
-    # Check overdue rent
-    tenants = await db.tenants.find({"payment_status": "pending"}, {"_id": 0}).to_list(1000)
+    # Check overdue rent: for each tenant, if today is past rent_due_day and no payment for current month exists
+    tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
     for tenant in tenants:
-        reminders.append({
-            "type": "rent",
-            "priority": "high",
-            "message": f"Rent pending from {tenant['name']} - ₹{tenant['monthly_rent']}",
+        rent_due_day = tenant.get('rent_due_day', 1)
+        if today.day < rent_due_day:
+            continue  # Not yet due this month
+        
+        # Check if payment exists for this tenant for current month/year
+        existing_payment = await db.rent_payments.find_one({
             "tenant_id": tenant['id'],
-            "property_id": tenant['property_id']
-        })
+            "month": current_month,
+            "year": current_year
+        }, {"_id": 0})
+        
+        if not existing_payment:
+            reminders.append({
+                "type": "rent",
+                "priority": "high",
+                "message": f"Rent unpaid for {tenant['name']} ({current_month}/{current_year}) - ₹{tenant['monthly_rent']} (due on day {rent_due_day})",
+                "tenant_id": tenant['id'],
+                "property_id": tenant['property_id']
+            })
     
     # Check unpaid utilities
     utilities = await db.utility_payments.find({"paid_status": False}, {"_id": 0}).to_list(1000)
-    today = datetime.now(timezone.utc)
     for utility in utilities:
         due_date = datetime.fromisoformat(utility['due_date'])
         if due_date.tzinfo is None:
@@ -500,17 +568,28 @@ async def send_reminders_email():
 
     # Reuse the same logic as /reminders
     reminders = []
+    today = datetime.now(timezone.utc)
+    current_month = today.month
+    current_year = today.year
 
-    tenants = await db.tenants.find({"payment_status": "pending"}, {"_id": 0}).to_list(1000)
+    tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
     for tenant in tenants:
-        reminders.append({
-            "type": "rent",
-            "priority": "high",
-            "message": f"Rent pending from {tenant['name']} - ₹{tenant['monthly_rent']}",
-        })
+        rent_due_day = tenant.get('rent_due_day', 1)
+        if today.day < rent_due_day:
+            continue
+        existing_payment = await db.rent_payments.find_one({
+            "tenant_id": tenant['id'],
+            "month": current_month,
+            "year": current_year
+        }, {"_id": 0})
+        if not existing_payment:
+            reminders.append({
+                "type": "rent",
+                "priority": "high",
+                "message": f"Rent unpaid for {tenant['name']} ({current_month}/{current_year}) - ₹{tenant['monthly_rent']}",
+            })
 
     utilities = await db.utility_payments.find({"paid_status": False}, {"_id": 0}).to_list(1000)
-    today = datetime.now(timezone.utc)
     for utility in utilities:
         due_date = datetime.fromisoformat(utility['due_date'])
         if due_date.tzinfo is None:

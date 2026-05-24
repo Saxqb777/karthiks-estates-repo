@@ -28,6 +28,8 @@ import AddTenantDialog from '../components/AddTenantDialog';
 import AddExpenseDialog from '../components/AddExpenseDialog';
 import AddUtilityDialog from '../components/AddUtilityDialog';
 import AddTaxDialog from '../components/AddTaxDialog';
+import RecordRentPaymentDialog from '../components/RecordRentPaymentDialog';
+import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 
@@ -42,6 +44,7 @@ export default function Dashboard() {
   const [utilities, setUtilities] = useState([]);
   const [taxes, setTaxes] = useState([]);
   const [reminders, setReminders] = useState([]);
+  const [rentPayments, setRentPayments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [showAddProperty, setShowAddProperty] = useState(false);
@@ -49,8 +52,11 @@ export default function Dashboard() {
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [showAddUtility, setShowAddUtility] = useState(false);
   const [showAddTax, setShowAddTax] = useState(false);
+  const [showRecordPayment, setShowRecordPayment] = useState(false);
+  const [showPaymentHistory, setShowPaymentHistory] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [editingTenant, setEditingTenant] = useState(null);
+  const [paymentTenant, setPaymentTenant] = useState(null);
 
   const handleEditProperty = (property) => {
     setEditingProperty(property);
@@ -72,6 +78,16 @@ export default function Dashboard() {
     if (!open) setEditingTenant(null);
   };
 
+  const handleRecordPayment = (tenant) => {
+    setPaymentTenant(tenant);
+    setShowRecordPayment(true);
+  };
+
+  const handleViewHistory = (tenant) => {
+    setPaymentTenant(tenant);
+    setShowPaymentHistory(true);
+  };
+
   useEffect(() => {
     fetchAllData();
   }, []);
@@ -86,10 +102,11 @@ export default function Dashboard() {
         axios.get(`${API}/expenses`),
         axios.get(`${API}/utility-payments`),
         axios.get(`${API}/property-taxes`),
-        axios.get(`${API}/reminders`)
+        axios.get(`${API}/reminders`),
+        axios.get(`${API}/rent-payments`)
       ]);
 
-      const [statsRes, propsRes, tenantsRes, expensesRes, utilsRes, taxesRes, remindersRes] = results;
+      const [statsRes, propsRes, tenantsRes, expensesRes, utilsRes, taxesRes, remindersRes, rentPaymentsRes] = results;
 
       if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
       else console.error('Failed to load stats:', statsRes.reason);
@@ -111,6 +128,9 @@ export default function Dashboard() {
 
       if (remindersRes.status === 'fulfilled') setReminders(remindersRes.value.data);
       else console.error('Failed to load reminders:', remindersRes.reason);
+
+      if (rentPaymentsRes.status === 'fulfilled') setRentPayments(rentPaymentsRes.value.data);
+      else console.error('Failed to load rent payments:', rentPaymentsRes.reason);
 
       const failedCount = results.filter(r => r.status === 'rejected').length;
       if (failedCount > 0) {
@@ -208,29 +228,36 @@ export default function Dashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
           <StatsCard
             icon={<House size={24} />}
             label="Total Property Value"
             value={`₹${(stats?.total_property_value || 0).toLocaleString('en-IN')}`}
-            trend="+0%"
             color="#2C4C3B"
             testId="stat-property-value"
           />
           <StatsCard
             icon={<TrendUp size={24} />}
             label="Total Appreciation"
-            value={`₹${(stats?.total_appreciation || 0).toLocaleString('en-IN')}`}
-            trend="+0%"
+            value={`₹${(stats?.total_appreciation || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
             color="#7BA38A"
             testId="stat-appreciation"
           />
           <StatsCard
             icon={<CurrencyInr size={24} />}
-            label="Annual Rental Income"
+            label="Rent Collected"
             value={`₹${(stats?.total_rental_income || 0).toLocaleString('en-IN')}`}
             color="#2C4C3B"
             testId="stat-rental-income"
+          />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <StatsCard
+            icon={<Receipt size={24} />}
+            label="Total Expenses"
+            value={`₹${(stats?.total_expenses || 0).toLocaleString('en-IN')}`}
+            color="#D96C4E"
+            testId="stat-expenses"
           />
           <StatsCard
             icon={<ChartLine size={24} />}
@@ -238,6 +265,14 @@ export default function Dashboard() {
             value={`₹${(stats?.net_profit || 0).toLocaleString('en-IN')}`}
             color={stats?.net_profit >= 0 ? '#7BA38A' : '#D96C4E'}
             testId="stat-net-profit"
+          />
+          <StatsCard
+            icon={<Users size={24} />}
+            label="Security Deposits Held"
+            value={`₹${(stats?.total_security_deposits || 0).toLocaleString('en-IN')}`}
+            trend="Refundable on exit"
+            color="#7BA38A"
+            testId="stat-security-deposits"
           />
         </div>
 
@@ -308,7 +343,15 @@ export default function Dashboard() {
                   Add Tenant
                 </Button>
               </div>
-              <TenantList tenants={tenants} properties={properties} onRefresh={fetchAllData} onEdit={handleEditTenant} />
+              <TenantList
+                tenants={tenants}
+                properties={properties}
+                rentPayments={rentPayments}
+                onRefresh={fetchAllData}
+                onEdit={handleEditTenant}
+                onRecordPayment={handleRecordPayment}
+                onViewHistory={handleViewHistory}
+              />
             </div>
           </TabsContent>
 
@@ -381,6 +424,18 @@ export default function Dashboard() {
         properties={properties}
         onSuccess={fetchAllData}
         editTenant={editingTenant}
+      />
+      <RecordRentPaymentDialog
+        open={showRecordPayment}
+        onOpenChange={setShowRecordPayment}
+        tenant={paymentTenant}
+        onSuccess={fetchAllData}
+      />
+      <PaymentHistoryDialog
+        open={showPaymentHistory}
+        onOpenChange={setShowPaymentHistory}
+        tenant={paymentTenant}
+        onUpdated={fetchAllData}
       />
       <AddExpenseDialog
         open={showAddExpense}

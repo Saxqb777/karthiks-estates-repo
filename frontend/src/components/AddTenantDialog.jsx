@@ -15,9 +15,10 @@ const emptyForm = {
   name: '',
   contact: '',
   monthly_rent: '',
+  security_deposit: '',
+  rent_due_day: '1',
   lease_start: '',
-  lease_end: '',
-  payment_status: 'pending'
+  lease_end: ''
 };
 
 export default function AddTenantDialog({ open, onOpenChange, properties, onSuccess, editTenant }) {
@@ -32,9 +33,10 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
         name: editTenant.name || '',
         contact: editTenant.contact || '',
         monthly_rent: editTenant.monthly_rent?.toString() || '',
+        security_deposit: editTenant.security_deposit?.toString() || '0',
+        rent_due_day: editTenant.rent_due_day?.toString() || '1',
         lease_start: editTenant.lease_start ? editTenant.lease_start.split('T')[0] : '',
-        lease_end: editTenant.lease_end ? editTenant.lease_end.split('T')[0] : '',
-        payment_status: editTenant.payment_status || 'pending'
+        lease_end: editTenant.lease_end ? editTenant.lease_end.split('T')[0] : ''
       });
     } else {
       setFormData(emptyForm);
@@ -48,11 +50,12 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
     try {
       const payload = {
         ...formData,
-        monthly_rent: parseFloat(formData.monthly_rent)
+        monthly_rent: parseFloat(formData.monthly_rent),
+        security_deposit: parseFloat(formData.security_deposit) || 0,
+        rent_due_day: parseInt(formData.rent_due_day) || 1
       };
 
       if (isEditMode) {
-        // For edit, exclude property_id (not in TenantUpdate model)
         const { property_id, ...updatePayload } = payload;
         await axios.patch(`${API}/tenants/${editTenant.id}`, updatePayload);
         toast.success('Tenant updated successfully');
@@ -72,9 +75,11 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
     }
   };
 
+  const dayOptions = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white" data-testid="add-tenant-dialog">
+      <DialogContent className="sm:max-w-[500px] bg-white max-h-[90vh] overflow-y-auto" data-testid="add-tenant-dialog">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold text-[#2C4C3B]">
             {isEditMode ? 'Edit Tenant' : 'Add New Tenant'}
@@ -127,18 +132,52 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
                 data-testid="tenant-contact-input"
               />
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="monthly_rent" className="text-[#2E2E2E]">Monthly Rent (₹) *</Label>
+                <Input
+                  id="monthly_rent"
+                  type="number"
+                  step="0.01"
+                  value={formData.monthly_rent}
+                  onChange={(e) => setFormData({ ...formData, monthly_rent: e.target.value })}
+                  required
+                  className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                  data-testid="tenant-rent-input"
+                />
+              </div>
+              <div>
+                <Label htmlFor="security_deposit" className="text-[#2E2E2E]">Security Deposit (₹) *</Label>
+                <Input
+                  id="security_deposit"
+                  type="number"
+                  step="0.01"
+                  value={formData.security_deposit}
+                  onChange={(e) => setFormData({ ...formData, security_deposit: e.target.value })}
+                  required
+                  placeholder="Refundable on exit"
+                  className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                  data-testid="tenant-deposit-input"
+                />
+              </div>
+            </div>
             <div>
-              <Label htmlFor="monthly_rent" className="text-[#2E2E2E]">Monthly Rent (₹) *</Label>
-              <Input
-                id="monthly_rent"
-                type="number"
-                step="0.01"
-                value={formData.monthly_rent}
-                onChange={(e) => setFormData({ ...formData, monthly_rent: e.target.value })}
-                required
-                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                data-testid="tenant-rent-input"
-              />
+              <Label htmlFor="rent_due_day" className="text-[#2E2E2E]">Rent Due Day of Month *</Label>
+              <Select
+                value={formData.rent_due_day}
+                onValueChange={(value) => setFormData({ ...formData, rent_due_day: value })}
+              >
+                <SelectTrigger className="border-[#E6E2D8]" data-testid="tenant-due-day-select">
+                  <SelectValue placeholder="Day of month rent is due" />
+                </SelectTrigger>
+                <SelectContent className="max-h-60">
+                  {dayOptions.map((day) => (
+                    <SelectItem key={day} value={day}>
+                      {day}{day === '1' ? 'st' : day === '2' ? 'nd' : day === '3' ? 'rd' : 'th'} of every month
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -165,22 +204,6 @@ export default function AddTenantDialog({ open, onOpenChange, properties, onSucc
                   data-testid="tenant-lease-end-input"
                 />
               </div>
-            </div>
-            <div>
-              <Label htmlFor="payment_status" className="text-[#2E2E2E]">Payment Status *</Label>
-              <Select
-                value={formData.payment_status}
-                onValueChange={(value) => setFormData({ ...formData, payment_status: value })}
-              >
-                <SelectTrigger className="border-[#E6E2D8]" data-testid="tenant-status-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="overdue">Overdue</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
           <DialogFooter>
