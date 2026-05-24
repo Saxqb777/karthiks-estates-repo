@@ -12,11 +12,19 @@ from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 import uuid
 from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 import csv
 import io
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# IST timezone for India-based property management
+IST = ZoneInfo("Asia/Kolkata")
+
+def now_ist():
+    """Return current datetime in IST timezone."""
+    return datetime.now(IST)
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
@@ -74,7 +82,21 @@ class Tenant(BaseModel):
     rent_due_day: int = 1  # Day of month rent is due (1-31)
     lease_start: str
     lease_end: Optional[str] = ""
+    # Lease close-out fields
+    lease_status: str = "active"  # "active" | "ended"
+    lease_end_date: Optional[str] = ""
+    pending_dues_at_exit: float = 0.0
+    deposit_refunded: float = 0.0
+    deposit_withheld: float = 0.0
+    exit_notes: str = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class CloseLeaseInput(BaseModel):
+    lease_end_date: str
+    pending_dues_at_exit: float = 0.0
+    deposit_refunded: float = 0.0
+    deposit_withheld: float = 0.0
+    exit_notes: str = ""
 
 class TenantCreate(BaseModel):
     property_id: str
@@ -289,6 +311,86 @@ async def delete_tenant(tenant_id: str):
         raise HTTPException(status_code=404, detail="Tenant not found")
     return {"message": "Tenant deleted successfully"}
 
+@api_router.get("/tenants/{tenant_id}/pending-dues-estimate")
+async def estimate_pending_dues(tenant_id: str):
+    """Auto-calculate suggested pending dues based on missing months from lease_start to today."""
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    try:
+        lease_start = datetime.fromisoformat(tenant['lease_start'])
+        if lease_start.tzinfo is None:
+            lease_start = lease_start.replace(tzinfo=IST)
+    except (ValueError, KeyError):
+        return {"missing_months": [], "estimated_amount": 0.0, "monthly_rent": tenant.get('monthly_rent', 0)}
+    
+    today = now_ist()
+    monthly_rent = tenant.get('monthly_rent', 0)
+    
+    # Build list of months from lease_start to today (inclusive of start month)
+    expected_months = []
+    cursor = datetime(lease_start.year, lease_start.month, 1, tzinfo=IST)
+    end = datetime(today.year, today.month, 1, tzinfo=IST)
+    while cursor <= end:
+        expected_months.append((cursor.month, cursor.year))
+        # Move to next month
+        if cursor.month == 12:
+            cursor = cursor.replace(year=cursor.year + 1, month=1)
+        else:
+            cursor = cursor.replace(month=cursor.month + 1)
+    
+    # Get all payments for this tenant
+    payments = await db.rent_payments.find({"tenant_id": tenant_id}, {"_id": 0}).to_list(10000)
+    paid_months = {(p['month'], p['year']) for p in payments}
+    
+    missing = [{"month": m, "year": y} for (m, y) in expected_months if (m, y) not in paid_months]
+    estimated_amount = len(missing) * monthly_rent
+    
+    return {
+        "missing_months": missing,
+        "estimated_amount": estimated_amount,
+        "monthly_rent": monthly_rent,
+        "missing_count": len(missing)
+    }
+
+@api_router.post("/tenants/{tenant_id}/close-lease", response_model=Tenant)
+async def close_lease(tenant_id: str, input: CloseLeaseInput):
+    """Close out a tenant's lease - marks as ended without deleting records."""
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    update_data = {
+        "lease_status": "ended",
+        "lease_end_date": input.lease_end_date,
+        "pending_dues_at_exit": input.pending_dues_at_exit,
+        "deposit_refunded": input.deposit_refunded,
+        "deposit_withheld": input.deposit_withheld,
+        "exit_notes": input.exit_notes,
+    }
+    
+    await db.tenants.update_one({"id": tenant_id}, {"$set": update_data})
+    updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    return updated
+
+@api_router.post("/tenants/{tenant_id}/reopen-lease", response_model=Tenant)
+async def reopen_lease(tenant_id: str):
+    """Reopen a closed lease (in case it was closed by mistake)."""
+    tenant = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    if not tenant:
+        raise HTTPException(status_code=404, detail="Tenant not found")
+    
+    await db.tenants.update_one(
+        {"id": tenant_id},
+        {"$set": {"lease_status": "active"},
+         "$unset": {"lease_end_date": "", "pending_dues_at_exit": "", "deposit_refunded": "", "deposit_withheld": "", "exit_notes": ""}}
+    )
+    updated = await db.tenants.find_one({"id": tenant_id}, {"_id": 0})
+    return updated
+
+
+
 
 # ============ RENT PAYMENT ROUTES ============
 
@@ -445,13 +547,13 @@ async def get_dashboard_stats():
     
     total_purchase_price = sum(p.get('purchase_price', 0) for p in properties)
     
-    # Calculate appreciation for each property
+    # Calculate appreciation for each property (using IST)
     total_current_value = 0
     for prop in properties:
         purchase_date = datetime.fromisoformat(prop['purchase_date'])
         if purchase_date.tzinfo is None:
-            purchase_date = purchase_date.replace(tzinfo=timezone.utc)
-        years_held = (datetime.now(timezone.utc) - purchase_date).days / 365.25
+            purchase_date = purchase_date.replace(tzinfo=IST)
+        years_held = (now_ist() - purchase_date).days / 365.25
         appreciation_rate = prop.get('appreciation_rate', 0) / 100
         current_value = prop['purchase_price'] * ((1 + appreciation_rate) ** years_held)
         total_current_value += current_value
@@ -459,8 +561,18 @@ async def get_dashboard_stats():
     total_appreciation = total_current_value - total_purchase_price
     # Actual collected rent (sum of all recorded rent payments)
     total_rental_income = sum(rp.get('amount', 0) for rp in rent_payments)
-    total_expenses_amount = sum(e.get('amount', 0) for e in expenses)
-    total_security_deposits = sum(t.get('security_deposit', 0) for t in tenants)
+    
+    # Pending dues from closed leases are treated as additional expenses (loss)
+    pending_dues_from_closed = sum(
+        t.get('pending_dues_at_exit', 0) for t in tenants if t.get('lease_status') == 'ended'
+    )
+    direct_expenses = sum(e.get('amount', 0) for e in expenses)
+    total_expenses_amount = direct_expenses + pending_dues_from_closed
+    
+    # Active security deposits only (closed tenants' deposits are settled, not held)
+    total_security_deposits = sum(
+        t.get('security_deposit', 0) for t in tenants if t.get('lease_status') != 'ended'
+    )
     
     net_profit = total_rental_income - total_expenses_amount
     
@@ -472,7 +584,7 @@ async def get_dashboard_stats():
         net_profit=net_profit,
         total_security_deposits=total_security_deposits,
         properties_count=len(properties),
-        tenants_count=len(tenants)
+        tenants_count=sum(1 for t in tenants if t.get('lease_status') != 'ended')
     )
 
 # ============ PAYMENT REMINDERS ============
@@ -480,12 +592,12 @@ async def get_dashboard_stats():
 @api_router.get("/reminders")
 async def get_payment_reminders():
     reminders = []
-    today = datetime.now(timezone.utc)
+    today = now_ist()
     current_month = today.month
     current_year = today.year
     
     # Check overdue rent: for each tenant, if today is past rent_due_day and no payment for current month exists
-    tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
+    tenants = await db.tenants.find({"lease_status": {"$ne": "ended"}}, {"_id": 0}).to_list(1000)
     for tenant in tenants:
         rent_due_day = tenant.get('rent_due_day', 1)
         if today.day < rent_due_day:
@@ -512,7 +624,7 @@ async def get_payment_reminders():
     for utility in utilities:
         due_date = datetime.fromisoformat(utility['due_date'])
         if due_date.tzinfo is None:
-            due_date = due_date.replace(tzinfo=timezone.utc)
+            due_date = due_date.replace(tzinfo=IST)
         if due_date < today:
             reminders.append({
                 "type": "utility",
@@ -592,11 +704,11 @@ async def send_reminders_email():
 
     # Reuse the same logic as /reminders
     reminders = []
-    today = datetime.now(timezone.utc)
+    today = now_ist()
     current_month = today.month
     current_year = today.year
 
-    tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
+    tenants = await db.tenants.find({"lease_status": {"$ne": "ended"}}, {"_id": 0}).to_list(1000)
     for tenant in tenants:
         rent_due_day = tenant.get('rent_due_day', 1)
         if today.day < rent_due_day:
@@ -617,7 +729,7 @@ async def send_reminders_email():
     for utility in utilities:
         due_date = datetime.fromisoformat(utility['due_date'])
         if due_date.tzinfo is None:
-            due_date = due_date.replace(tzinfo=timezone.utc)
+            due_date = due_date.replace(tzinfo=IST)
         if due_date < today:
             reminders.append({
                 "type": "utility",

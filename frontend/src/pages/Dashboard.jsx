@@ -30,6 +30,7 @@ import AddUtilityDialog from '../components/AddUtilityDialog';
 import AddTaxDialog from '../components/AddTaxDialog';
 import RecordRentPaymentDialog from '../components/RecordRentPaymentDialog';
 import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
+import CloseLeaseDialog from '../components/CloseLeaseDialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 
@@ -54,9 +55,11 @@ export default function Dashboard() {
   const [showAddTax, setShowAddTax] = useState(false);
   const [showRecordPayment, setShowRecordPayment] = useState(false);
   const [showPaymentHistory, setShowPaymentHistory] = useState(false);
+  const [showCloseLease, setShowCloseLease] = useState(false);
   const [editingProperty, setEditingProperty] = useState(null);
   const [editingTenant, setEditingTenant] = useState(null);
   const [paymentTenant, setPaymentTenant] = useState(null);
+  const [closeLeaseTenant, setCloseLeaseTenant] = useState(null);
 
   const handleEditProperty = (property) => {
     setEditingProperty(property);
@@ -86,6 +89,11 @@ export default function Dashboard() {
   const handleViewHistory = (tenant) => {
     setPaymentTenant(tenant);
     setShowPaymentHistory(true);
+  };
+
+  const handleCloseLease = (tenant) => {
+    setCloseLeaseTenant(tenant);
+    setShowCloseLease(true);
   };
 
   useEffect(() => {
@@ -351,6 +359,7 @@ export default function Dashboard() {
                 onEdit={handleEditTenant}
                 onRecordPayment={handleRecordPayment}
                 onViewHistory={handleViewHistory}
+                onCloseLease={handleCloseLease}
               />
             </div>
           </TabsContent>
@@ -436,6 +445,12 @@ export default function Dashboard() {
         onOpenChange={setShowPaymentHistory}
         tenant={paymentTenant}
         onUpdated={fetchAllData}
+      />
+      <CloseLeaseDialog
+        open={showCloseLease}
+        onOpenChange={(o) => { setShowCloseLease(o); if (!o) setCloseLeaseTenant(null); }}
+        tenant={closeLeaseTenant}
+        onSuccess={fetchAllData}
       />
       <AddExpenseDialog
         open={showAddExpense}
