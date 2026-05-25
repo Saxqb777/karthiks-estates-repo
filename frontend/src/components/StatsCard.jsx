@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function StatsCard({ icon, label, value, trend, color, testId, accent }) {
+export default function StatsCard({ icon, label, value, trend, color, testId, accent, subValue }) {
   return (
     <div
       className="bg-white border border-[#E5E2DA] rounded-lg p-6 card-hover"
@@ -19,6 +19,11 @@ export default function StatsCard({ icon, label, value, trend, color, testId, ac
       <p className="text-2xl font-semibold tracking-tight text-[#0F172A] tabular-nums" style={accent ? { color } : {}}>
         {value}
       </p>
+      {subValue && (
+        <p className="text-[11px] text-[#64748B] mt-1 tabular-nums">
+          {subValue}
+        </p>
+      )}
       {trend && (
         <p className="text-xs text-[#64748B] mt-2">
           {trend}

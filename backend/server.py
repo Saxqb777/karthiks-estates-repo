@@ -251,6 +251,9 @@ class DashboardStats(BaseModel):
     total_security_deposits: float
     properties_count: int
     tenants_count: int
+    business_overhead_ytd: float = 0
+    business_overhead_total: float = 0
+    business_overhead_fy_label: str = ""
 
 # ============ PROPERTY ROUTES ============
 
@@ -909,6 +912,27 @@ async def get_dashboard_stats():
     
     net_profit = total_rental_income - total_expenses_amount
     
+    # Business overhead = portfolio-level expenses (no property_id set)
+    today_ist = now_ist()
+    # Indian FY runs Apr (month=4) → Mar of next year
+    fy_start_year = today_ist.year if today_ist.month >= 4 else today_ist.year - 1
+    fy_start = datetime(fy_start_year, 4, 1, tzinfo=IST)
+    fy_end = datetime(fy_start_year + 1, 4, 1, tzinfo=IST)
+    
+    portfolio_expenses = [e for e in expenses if not e.get('property_id')]
+    business_overhead_total = sum(e.get('amount', 0) for e in portfolio_expenses)
+    business_overhead_ytd = 0
+    for e in portfolio_expenses:
+        try:
+            dt = datetime.fromisoformat(e.get('date', ''))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=IST)
+            if fy_start <= dt < fy_end:
+                business_overhead_ytd += e.get('amount', 0)
+        except (ValueError, AttributeError):
+            pass
+    fy_label = f"FY {fy_start_year}–{str(fy_start_year + 1)[2:]}"
+    
     return DashboardStats(
         total_property_value=total_current_value,
         total_appreciation=total_appreciation,
@@ -917,7 +941,10 @@ async def get_dashboard_stats():
         net_profit=net_profit,
         total_security_deposits=total_security_deposits,
         properties_count=len(properties),
-        tenants_count=sum(1 for t in tenants if t.get('lease_status') != 'ended')
+        tenants_count=sum(1 for t in tenants if t.get('lease_status') != 'ended'),
+        business_overhead_ytd=round(business_overhead_ytd, 2),
+        business_overhead_total=round(business_overhead_total, 2),
+        business_overhead_fy_label=fy_label
     )
 
 # ============ CUSTOM REMINDERS ============
