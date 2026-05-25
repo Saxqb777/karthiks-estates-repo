@@ -26,6 +26,7 @@ export default function ExpenseList({ expenses, properties, onRefresh }) {
   };
 
   const getPropertyName = (propertyId) => {
+    if (!propertyId) return null; // portfolio expense
     const property = properties.find(p => p.id === propertyId);
     return property ? property.name : 'Unknown Property';
   };
@@ -35,6 +36,8 @@ export default function ExpenseList({ expenses, properties, onRefresh }) {
       maintenance: '#7BA38A',
       repairs: '#D96C4E',
       insurance: '#2C4C3B',
+      software: '#1D4ED8',
+      professional: '#7C3AED',
       other: '#7D7D7D'
     };
     return colors[category] || colors.other;
@@ -80,7 +83,11 @@ export default function ExpenseList({ expenses, properties, onRefresh }) {
                 {new Date(expense.date).toLocaleDateString('en-IN')}
               </td>
               <td className="py-4 px-4 text-[#2E2E2E]">
-                {getPropertyName(expense.property_id)}
+                {getPropertyName(expense.property_id) || (
+                  <span className="inline-block px-2 py-1 text-[10px] uppercase tracking-wider font-bold bg-[#B89D5F]/15 text-[#8E7846] rounded">
+                    Portfolio
+                  </span>
+                )}
               </td>
               <td className="py-4 px-4">
                 <span

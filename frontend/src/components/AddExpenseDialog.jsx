@@ -13,7 +13,7 @@ const API = `${BACKEND_URL}/api`;
 
 export default function AddExpenseDialog({ open, onOpenChange, properties, onSuccess }) {
   const [formData, setFormData] = useState({
-    property_id: '',
+    property_id: 'portfolio',
     category: 'maintenance',
     amount: '',
     date: new Date().toISOString().split('T')[0],
@@ -28,12 +28,13 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
     try {
       await axios.post(`${API}/expenses`, {
         ...formData,
+        property_id: formData.property_id === 'portfolio' ? '' : formData.property_id,
         amount: parseFloat(formData.amount)
       });
 
       toast.success('Expense added successfully');
       setFormData({
-        property_id: '',
+        property_id: 'portfolio',
         category: 'maintenance',
         amount: '',
         date: new Date().toISOString().split('T')[0],
@@ -70,6 +71,9 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
                   <SelectValue placeholder="Select a property" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="portfolio">
+                    Portfolio (All Properties / Business Expense)
+                  </SelectItem>
                   {properties.map((property) => (
                     <SelectItem key={property.id} value={property.id}>
                       {property.name}
@@ -77,6 +81,9 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-[#64748B] mt-1">
+                Use "Portfolio" for expenses that apply to your overall business (e.g., software, accounting, legal).
+              </p>
             </div>
             <div>
               <Label htmlFor="category" className="text-[#2E2E2E]">Category *</Label>
@@ -91,6 +98,8 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                   <SelectItem value="repairs">Repairs</SelectItem>
                   <SelectItem value="insurance">Insurance</SelectItem>
+                  <SelectItem value="software">Software / App</SelectItem>
+                  <SelectItem value="professional">Professional Services (Legal/Accounting)</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>

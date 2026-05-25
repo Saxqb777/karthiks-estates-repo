@@ -157,15 +157,15 @@ class RentPaymentUpdate(BaseModel):
 class Expense(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    property_id: str
-    category: str  # "maintenance", "repairs", "insurance", "other"
+    property_id: Optional[str] = ""  # Empty string = portfolio-wide expense
+    category: str  # "maintenance", "repairs", "insurance", "software", "professional", "other"
     amount: float
     date: str
     description: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class ExpenseCreate(BaseModel):
-    property_id: str
+    property_id: Optional[str] = ""
     category: str
     amount: float
     date: str
