@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bell, EnvelopeSimple, CheckCircle, CurrencyInr } from '@phosphor-icons/react';
+import { Bell, EnvelopeSimple, CheckCircle, CurrencyInr, Plus, Trash } from '@phosphor-icons/react';
 import { Button } from './ui/button';
+import AddReminderDialog from './AddReminderDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -12,6 +13,7 @@ const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'Jul
 export default function PaymentReminders({ reminders, onRefresh }) {
   const [sending, setSending] = useState(false);
   const [resolvingId, setResolvingId] = useState(null);
+  const [showAdd, setShowAdd] = useState(false);
 
   const getPriorityColor = (priority) => {
     switch (priority) {
@@ -105,10 +107,41 @@ export default function PaymentReminders({ reminders, onRefresh }) {
     }
   };
 
+  const handleMarkCustomDone = async (reminder) => {
+    if (!reminder.custom_id) return;
+    setResolvingId(reminder.custom_id);
+    try {
+      await axios.patch(`${API}/custom-reminders/${reminder.custom_id}`, { is_done: true });
+      toast.success('Reminder marked as done');
+      onRefresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to update reminder');
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const handleDeleteCustom = async (reminder) => {
+    if (!reminder.custom_id) return;
+    setResolvingId(reminder.custom_id);
+    try {
+      await axios.delete(`${API}/custom-reminders/${reminder.custom_id}`);
+      toast.success('Reminder deleted');
+      onRefresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to delete reminder');
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
   const resolveHandler = (reminder) => {
     if (reminder.type === 'rent') return () => handleMarkRentPaid(reminder);
     if (reminder.type === 'utility') return () => handleMarkUtilityPaid(reminder);
     if (reminder.type === 'tax') return () => handleMarkTaxPaid(reminder);
+    if (reminder.type === 'custom') return () => handleMarkCustomDone(reminder);
     return null;
   };
 
@@ -124,17 +157,28 @@ export default function PaymentReminders({ reminders, onRefresh }) {
             </span>
           )}
         </div>
-        <Button
-          onClick={handleSendEmail}
-          disabled={sending}
-          size="sm"
-          variant="outline"
-          className="border-[#E5E2DA] hover:border-[#0F172A] text-xs"
-          data-testid="send-reminders-email-btn"
-        >
-          <EnvelopeSimple size={14} className="mr-1.5" />
-          {sending ? 'Sending...' : 'Email Me'}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={() => setShowAdd(true)}
+            size="sm"
+            className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs"
+            data-testid="add-reminder-btn"
+          >
+            <Plus size={14} className="mr-1.5" />
+            Add
+          </Button>
+          <Button
+            onClick={handleSendEmail}
+            disabled={sending}
+            size="sm"
+            variant="outline"
+            className="border-[#E5E2DA] hover:border-[#0F172A] text-xs"
+            data-testid="send-reminders-email-btn"
+          >
+            <EnvelopeSimple size={14} className="mr-1.5" />
+            {sending ? 'Sending...' : 'Email Me'}
+          </Button>
+        </div>
       </div>
       <div className="space-y-2">
         {reminders.length === 0 ? (
@@ -144,8 +188,13 @@ export default function PaymentReminders({ reminders, onRefresh }) {
         ) : (
           reminders.map((reminder, index) => {
             const handler = resolveHandler(reminder);
-            const reminderKey = `${reminder.tenant_id || reminder.utility_id || reminder.tax_id || index}-${reminder.message}`;
-            const isResolving = resolvingId && (resolvingId === reminder.utility_id || resolvingId === reminder.tax_id || resolvingId.includes(reminder.tenant_id || ''));
+            const reminderKey = `${reminder.tenant_id || reminder.utility_id || reminder.tax_id || reminder.custom_id || index}-${reminder.message}`;
+            const isResolving = resolvingId && (
+              resolvingId === reminder.utility_id ||
+              resolvingId === reminder.tax_id ||
+              resolvingId === reminder.custom_id ||
+              (reminder.tenant_id && resolvingId.includes && resolvingId.includes(reminder.tenant_id))
+            );
             return (
               <div
                 key={reminderKey}
@@ -156,30 +205,50 @@ export default function PaymentReminders({ reminders, onRefresh }) {
                   {reminder.type === 'rent' && <CurrencyInr size={18} className="text-[#B91C1C] flex-shrink-0 mt-0.5" />}
                   {reminder.type === 'utility' && <Bell size={18} className="text-[#B89D5F] flex-shrink-0 mt-0.5" />}
                   {reminder.type === 'tax' && <Bell size={18} className="text-[#B91C1C] flex-shrink-0 mt-0.5" />}
+                  {reminder.type === 'custom' && <Bell size={18} className="text-[#B89D5F] flex-shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] block mb-0.5">
                       {reminder.type} · {reminder.priority} priority
                     </span>
                     <p className="text-sm text-[#0F172A] break-words leading-snug">{reminder.message}</p>
+                    {reminder.notes && (
+                      <p className="text-xs text-[#64748B] mt-1 italic break-words">{reminder.notes}</p>
+                    )}
                   </div>
                 </div>
-                {handler && (
-                  <Button
-                    onClick={handler}
-                    disabled={isResolving}
-                    size="sm"
-                    className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs flex-shrink-0"
-                    data-testid={`resolve-reminder-${index}`}
-                  >
-                    <CheckCircle size={14} className="mr-1" />
-                    {isResolving ? 'Saving...' : 'Mark Paid'}
-                  </Button>
-                )}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {handler && (
+                    <Button
+                      onClick={handler}
+                      disabled={isResolving}
+                      size="sm"
+                      className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs"
+                      data-testid={`resolve-reminder-${index}`}
+                    >
+                      <CheckCircle size={14} className="mr-1" />
+                      {isResolving ? 'Saving...' : (reminder.type === 'custom' ? 'Mark Done' : 'Mark Paid')}
+                    </Button>
+                  )}
+                  {reminder.type === 'custom' && (
+                    <Button
+                      onClick={() => handleDeleteCustom(reminder)}
+                      disabled={isResolving}
+                      size="sm"
+                      variant="ghost"
+                      className="text-[#B91C1C] hover:bg-[#FEE2E2]/40 h-8 w-8 p-0"
+                      data-testid={`delete-reminder-${index}`}
+                      title="Delete reminder"
+                    >
+                      <Trash size={14} />
+                    </Button>
+                  )}
+                </div>
               </div>
             );
           })
         )}
       </div>
+      <AddReminderDialog open={showAdd} onOpenChange={setShowAdd} onSuccess={onRefresh} />
     </div>
   );
 }

@@ -219,6 +219,29 @@ class PropertyTaxUpdate(BaseModel):
     paid_status: Optional[bool] = None
     payment_date: Optional[str] = None
 
+class CustomReminder(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str
+    due_date: str  # YYYY-MM-DD
+    priority: str = "medium"  # "high", "medium", "low"
+    notes: Optional[str] = None
+    is_done: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class CustomReminderCreate(BaseModel):
+    title: str
+    due_date: str
+    priority: str = "medium"
+    notes: Optional[str] = None
+
+class CustomReminderUpdate(BaseModel):
+    title: Optional[str] = None
+    due_date: Optional[str] = None
+    priority: Optional[str] = None
+    notes: Optional[str] = None
+    is_done: Optional[bool] = None
+
 class DashboardStats(BaseModel):
     total_property_value: float
     total_appreciation: float
@@ -897,6 +920,38 @@ async def get_dashboard_stats():
         tenants_count=sum(1 for t in tenants if t.get('lease_status') != 'ended')
     )
 
+# ============ CUSTOM REMINDERS ============
+
+@api_router.post("/custom-reminders", response_model=CustomReminder)
+async def create_custom_reminder(input: CustomReminderCreate):
+    obj = CustomReminder(**input.model_dump())
+    await db.custom_reminders.insert_one(obj.model_dump())
+    return obj
+
+@api_router.get("/custom-reminders", response_model=List[CustomReminder])
+async def list_custom_reminders(include_done: bool = False):
+    query = {} if include_done else {"is_done": False}
+    items = await db.custom_reminders.find(query, {"_id": 0}).sort("due_date", 1).to_list(1000)
+    return items
+
+@api_router.patch("/custom-reminders/{reminder_id}", response_model=CustomReminder)
+async def update_custom_reminder(reminder_id: str, input: CustomReminderUpdate):
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No fields to update")
+    result = await db.custom_reminders.update_one({"id": reminder_id}, {"$set": update_data})
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    updated = await db.custom_reminders.find_one({"id": reminder_id}, {"_id": 0})
+    return updated
+
+@api_router.delete("/custom-reminders/{reminder_id}")
+async def delete_custom_reminder(reminder_id: str):
+    result = await db.custom_reminders.delete_one({"id": reminder_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Reminder not found")
+    return {"message": "Reminder deleted"}
+
 # ============ PAYMENT REMINDERS ============
 
 @api_router.get("/reminders")
@@ -953,6 +1008,31 @@ async def get_payment_reminders():
             "message": f"Property tax {tax['year']} unpaid - ₹{tax['amount']}",
             "tax_id": tax['id'],
             "property_id": tax['property_id']
+        })
+    
+    # Include user-added custom reminders (not yet done)
+    custom = await db.custom_reminders.find({"is_done": False}, {"_id": 0}).sort("due_date", 1).to_list(1000)
+    for c in custom:
+        try:
+            due_dt = datetime.fromisoformat(c['due_date'])
+            if due_dt.tzinfo is None:
+                due_dt = due_dt.replace(tzinfo=IST)
+            days_diff = (due_dt.date() - today.date()).days
+            if days_diff < 0:
+                date_label = f"overdue by {abs(days_diff)}d"
+            elif days_diff == 0:
+                date_label = "due today"
+            else:
+                date_label = f"in {days_diff}d"
+        except (ValueError, AttributeError):
+            date_label = ""
+        reminders.append({
+            "type": "custom",
+            "priority": c.get('priority', 'medium'),
+            "message": f"{c['title']} ({date_label})" if date_label else c['title'],
+            "custom_id": c['id'],
+            "due_date": c['due_date'],
+            "notes": c.get('notes')
         })
     
     return reminders
