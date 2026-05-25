@@ -29,25 +29,25 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
       toast.success('Property deleted successfully');
       onRefresh();
     } catch (error) {
-      console.error('Error deleting property:', error);
+      console.error(error);
       toast.error('Failed to delete property');
     }
   };
 
   return (
     <div
-      className="bg-white border border-[#E6E2D8] rounded-lg overflow-hidden hover:-translate-y-1 hover:shadow-lg hover:border-[#D1CBBF] transition-all duration-200"
+      className="bg-white border border-[#E5E2DA] rounded-lg card-hover"
       data-testid={`property-card-${property.id}`}
     >
       <div className="p-6">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-[#2C4C3B]/10 rounded-lg">
-              <House size={28} className="text-[#2C4C3B]" weight="duotone" />
+            <div className="w-11 h-11 bg-[#0F172A] rounded-md flex items-center justify-center">
+              <House size={20} className="text-[#B89D5F]" weight="fill" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold text-[#2C4C3B]">{property.name}</h3>
-              <span className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">Townhouse</span>
+              <h3 className="text-lg font-semibold text-[#0F172A]">{property.name}</h3>
+              <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Townhouse</span>
             </div>
           </div>
           <div className="flex gap-1">
@@ -55,67 +55,59 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
               size="sm"
               variant="ghost"
               onClick={() => onEdit(property)}
-              className="text-[#2C4C3B] hover:text-[#1F362A] hover:bg-[#2C4C3B]/10"
+              className="h-8 w-8 p-0 text-[#64748B] hover:text-[#0F172A] hover:bg-[#F4F4EF]"
               data-testid={`edit-property-${property.id}`}
             >
-              <PencilSimple size={18} />
+              <PencilSimple size={16} />
             </Button>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => setShowDelete(true)}
-              className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
+              className="h-8 w-8 p-0 text-[#B91C1C] hover:text-[#7F1D1D] hover:bg-[#FEE2E2]"
               data-testid={`delete-property-${property.id}`}
             >
-              <Trash size={18} />
+              <Trash size={16} />
             </Button>
           </div>
         </div>
 
-        <div className="space-y-2 mb-4">
-          <div className="flex items-center text-sm text-[#7D7D7D]">
-            <MapPin size={16} className="mr-2" />
+        <div className="space-y-1.5 mb-5">
+          <div className="flex items-center text-xs text-[#64748B]">
+            <MapPin size={14} className="mr-1.5" />
             {property.address}
           </div>
-          <div className="flex items-center text-sm text-[#7D7D7D]">
-            <Calendar size={16} className="mr-2" />
-            Purchased: {new Date(property.purchase_date).toLocaleDateString('en-IN')}
+          <div className="flex items-center text-xs text-[#64748B]">
+            <Calendar size={14} className="mr-1.5" />
+            Purchased {new Date(property.purchase_date).toLocaleDateString('en-IN')}
           </div>
         </div>
 
-        <div className="border-t border-[#E6E2D8] pt-4 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
-              Purchase Price
-            </span>
-            <span className="text-base font-semibold text-[#2E2E2E]">
+        <div className="border-t border-[#E5E2DA] pt-4 space-y-3">
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Purchase Price</span>
+            <span className="text-sm font-semibold text-[#0F172A] tabular-nums">
               ₹{property.purchase_price.toLocaleString('en-IN')}
             </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
-              Current Value
-            </span>
-            <span className="text-base font-semibold text-[#2C4C3B]">
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Current Value</span>
+            <span className="text-base font-semibold text-[#0F172A] tabular-nums">
               ₹{currentValue.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
             </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
-              Appreciation
-            </span>
-            <div className="flex items-center text-[#7BA38A]">
-              <TrendUp size={16} className="mr-1" />
-              <span className="text-base font-semibold">
-                ₹{appreciation.toLocaleString('en-IN', { maximumFractionDigits: 0 })} ({appreciationPercent.toFixed(1)}%)
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Appreciation</span>
+            <div className="flex items-center text-[#047857]">
+              <TrendUp size={14} className="mr-1" />
+              <span className="text-sm font-semibold tabular-nums">
+                ₹{appreciation.toLocaleString('en-IN', { maximumFractionDigits: 0 })} · {appreciationPercent.toFixed(1)}%
               </span>
             </div>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
-              Annual Rate
-            </span>
-            <span className="text-base font-semibold text-[#2E2E2E]">
+          <div className="flex justify-between items-baseline">
+            <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Annual Rate</span>
+            <span className="text-sm font-semibold text-[#B89D5F] tabular-nums">
               {property.appreciation_rate}%
             </span>
           </div>

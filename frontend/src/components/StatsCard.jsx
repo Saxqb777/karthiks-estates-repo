@@ -1,30 +1,29 @@
 import React from 'react';
 
-export default function StatsCard({ icon, label, value, trend, color, testId }) {
+export default function StatsCard({ icon, label, value, trend, color, testId, accent }) {
   return (
     <div
-      className="bg-white border border-[#E6E2D8] rounded-lg p-6 hover:-translate-y-1 hover:shadow-lg hover:border-[#D1CBBF] transition-all duration-200"
+      className="bg-white border border-[#E5E2DA] rounded-lg p-6 card-hover"
       data-testid={testId}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D] mb-3">
-            {label}
-          </p>
-          <p className="text-2xl font-semibold text-[#2E2E2E] mb-2">{value}</p>
-          {trend && (
-            <p className="text-sm" style={{ color }}>
-              {trend}
-            </p>
-          )}
-        </div>
-        <div
-          className="p-3 rounded-lg"
-          style={{ backgroundColor: `${color}15` }}
-        >
-          <div style={{ color }}>{icon}</div>
-        </div>
+      <div className="flex items-start justify-between mb-4">
+        <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">
+          {label}
+        </p>
+        {icon && (
+          <div className="text-[#94A3B8]">
+            {icon}
+          </div>
+        )}
       </div>
+      <p className="text-2xl font-semibold tracking-tight text-[#0F172A] tabular-nums" style={accent ? { color } : {}}>
+        {value}
+      </p>
+      {trend && (
+        <p className="text-xs text-[#64748B] mt-2">
+          {trend}
+        </p>
+      )}
     </div>
   );
 }

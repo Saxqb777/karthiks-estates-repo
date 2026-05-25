@@ -241,6 +241,217 @@ async def get_property(property_id: str):
         raise HTTPException(status_code=404, detail="Property not found")
     return property_doc
 
+@api_router.get("/analytics/vacancy")
+async def get_vacancy_stats():
+    """Calculate vacancy days and unrealized rent loss per property since purchase."""
+    properties = await db.properties.find({}, {"_id": 0}).to_list(1000)
+    tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
+    today = now_ist()
+    
+    results = []
+    for prop in properties:
+        try:
+            purchase_date = datetime.fromisoformat(prop['purchase_date'])
+            if purchase_date.tzinfo is None:
+                purchase_date = purchase_date.replace(tzinfo=IST)
+        except (ValueError, KeyError):
+            continue
+        
+        total_owned_days = max(0, (today - purchase_date).days)
+        
+        # Collect occupancy intervals for this property
+        prop_tenants = [t for t in tenants if t.get('property_id') == prop['id']]
+        intervals = []
+        for t in prop_tenants:
+            try:
+                start = datetime.fromisoformat(t['lease_start'])
+                if start.tzinfo is None:
+                    start = start.replace(tzinfo=IST)
+            except (ValueError, KeyError):
+                continue
+            
+            # End: lease_end_date if ended, else today
+            if t.get('lease_status') == 'ended' and t.get('lease_end_date'):
+                try:
+                    end = datetime.fromisoformat(t['lease_end_date'])
+                    if end.tzinfo is None:
+                        end = end.replace(tzinfo=IST)
+                except (ValueError, KeyError):
+                    end = today
+            else:
+                end = today
+            
+            # Clamp to purchase_date and today
+            start = max(start, purchase_date)
+            end = min(end, today)
+            if end > start:
+                intervals.append((start, end, t.get('monthly_rent', 0)))
+        
+        # Sort intervals and merge overlapping ones for occupied days
+        intervals.sort(key=lambda x: x[0])
+        occupied_days = 0
+        last_end = purchase_date
+        avg_rent_sum = 0
+        avg_rent_count = 0
+        for start, end, rent in intervals:
+            effective_start = max(start, last_end)
+            if end > effective_start:
+                occupied_days += (end - effective_start).days
+                last_end = end
+                avg_rent_sum += rent
+                avg_rent_count += 1
+        
+        vacant_days = max(0, total_owned_days - occupied_days)
+        avg_monthly_rent = (avg_rent_sum / avg_rent_count) if avg_rent_count > 0 else 0
+        daily_rent = avg_monthly_rent / 30.0 if avg_monthly_rent > 0 else 0
+        unrealized_loss = vacant_days * daily_rent
+        
+        # Currently occupied?
+        is_currently_occupied = any(
+            t.get('lease_status') != 'ended' and
+            datetime.fromisoformat(t['lease_start']).replace(tzinfo=IST if datetime.fromisoformat(t['lease_start']).tzinfo is None else None) <= today
+            for t in prop_tenants if t.get('lease_start')
+        )
+        
+        results.append({
+            "property_id": prop['id'],
+            "property_name": prop['name'],
+            "purchase_date": prop['purchase_date'],
+            "total_owned_days": total_owned_days,
+            "occupied_days": occupied_days,
+            "vacant_days": vacant_days,
+            "occupancy_rate": round((occupied_days / total_owned_days * 100), 1) if total_owned_days > 0 else 0,
+            "avg_monthly_rent": avg_monthly_rent,
+            "unrealized_loss": round(unrealized_loss, 2),
+            "is_currently_occupied": is_currently_occupied
+        })
+    
+    return results
+
+@api_router.get("/analytics/monthly-flow")
+async def get_monthly_flow(months: int = 12):
+    """Return monthly rent collected and expenses for the last N months."""
+    today = now_ist()
+    result = []
+    
+    rent_payments = await db.rent_payments.find({}, {"_id": 0}).to_list(10000)
+    expenses = await db.expenses.find({}, {"_id": 0}).to_list(10000)
+    utility_payments = await db.utility_payments.find({}, {"_id": 0}).to_list(10000)
+    property_taxes = await db.property_taxes.find({}, {"_id": 0}).to_list(10000)
+    
+    # Build last N months
+    cursor_year = today.year
+    cursor_month = today.month
+    month_list = []
+    for _ in range(months):
+        month_list.append((cursor_month, cursor_year))
+        cursor_month -= 1
+        if cursor_month < 1:
+            cursor_month = 12
+            cursor_year -= 1
+    month_list.reverse()
+    
+    for (m, y) in month_list:
+        rent_total = sum(p.get('amount', 0) for p in rent_payments if p.get('month') == m and p.get('year') == y)
+        
+        exp_total = 0
+        for e in expenses:
+            try:
+                dt = datetime.fromisoformat(e.get('date', ''))
+                if dt.month == m and dt.year == y:
+                    exp_total += e.get('amount', 0)
+            except (ValueError, AttributeError):
+                pass
+        
+        # Paid utilities by payment_date
+        for u in utility_payments:
+            if not u.get('paid_status') or not u.get('payment_date'):
+                continue
+            try:
+                dt = datetime.fromisoformat(u['payment_date'])
+                if dt.month == m and dt.year == y:
+                    exp_total += u.get('amount', 0)
+            except (ValueError, AttributeError):
+                pass
+        
+        # Paid taxes by payment_date
+        for t in property_taxes:
+            if not t.get('paid_status') or not t.get('payment_date'):
+                continue
+            try:
+                dt = datetime.fromisoformat(t['payment_date'])
+                if dt.month == m and dt.year == y:
+                    exp_total += t.get('amount', 0)
+            except (ValueError, AttributeError):
+                pass
+        
+        result.append({
+            "month": m,
+            "year": y,
+            "label": f"{['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][m-1]} {str(y)[2:]}",
+            "rent_collected": round(rent_total, 2),
+            "expenses": round(exp_total, 2),
+            "net": round(rent_total - exp_total, 2)
+        })
+    
+    return result
+
+@api_router.get("/analytics/expense-breakdown")
+async def get_expense_breakdown():
+    """Return expense totals grouped by category."""
+    expenses = await db.expenses.find({}, {"_id": 0}).to_list(10000)
+    utility_payments = await db.utility_payments.find({}, {"_id": 0}).to_list(10000)
+    property_taxes = await db.property_taxes.find({}, {"_id": 0}).to_list(10000)
+    tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
+    
+    breakdown = {}
+    for e in expenses:
+        cat = e.get('category', 'other').capitalize()
+        breakdown[cat] = breakdown.get(cat, 0) + e.get('amount', 0)
+    
+    paid_utilities = sum(u.get('amount', 0) for u in utility_payments if u.get('paid_status'))
+    if paid_utilities > 0:
+        breakdown['Utilities'] = paid_utilities
+    
+    paid_taxes = sum(t.get('amount', 0) for t in property_taxes if t.get('paid_status'))
+    if paid_taxes > 0:
+        breakdown['Property Tax'] = paid_taxes
+    
+    unrecovered_dues = sum(
+        max(0, (t.get('pending_dues_at_exit', 0) or 0) - (t.get('deposit_withheld', 0) or 0))
+        for t in tenants if t.get('lease_status') == 'ended'
+    )
+    if unrecovered_dues > 0:
+        breakdown['Unrecovered Dues'] = unrecovered_dues
+    
+    return [{"category": k, "amount": round(v, 2)} for k, v in breakdown.items() if v > 0]
+
+@api_router.get("/analytics/property-projections")
+async def get_property_projections(years: int = 5):
+    """Project property value growth for N years using each property's appreciation rate."""
+    properties = await db.properties.find({}, {"_id": 0}).to_list(1000)
+    today = now_ist()
+    
+    result = []
+    for year_offset in range(years + 1):
+        point = {"year": today.year + year_offset, "label": f"Year {year_offset}" if year_offset > 0 else "Now"}
+        for prop in properties:
+            try:
+                purchase_date = datetime.fromisoformat(prop['purchase_date'])
+                if purchase_date.tzinfo is None:
+                    purchase_date = purchase_date.replace(tzinfo=IST)
+            except (ValueError, KeyError):
+                continue
+            
+            target_date = today.replace(year=today.year + year_offset)
+            years_held = (target_date - purchase_date).days / 365.25
+            rate = prop.get('appreciation_rate', 0) / 100
+            value = prop['purchase_price'] * ((1 + rate) ** max(0, years_held))
+            point[prop['name']] = round(value, 0)
+        result.append(point)
+    
+    return result
+
 @api_router.patch("/properties/{property_id}", response_model=Property)
 async def update_property(property_id: str, input: PropertyUpdate):
     update_data = {k: v for k, v in input.model_dump().items() if v is not None}

@@ -2,19 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
 import {
-  House,
-  TrendUp,
-  CurrencyInr,
-  ChartLine,
-  Plus,
-  Download,
-  Upload,
-  Users,
-  Receipt,
-  Drop,
-  Lightning,
-  FileText,
-  Bell
+  House, TrendUp, CurrencyInr, ChartLine, Plus, Users, Receipt, Drop, Lightning,
+  FileText, Buildings, ChartBar
 } from '@phosphor-icons/react';
 import StatsCard from '../components/StatsCard';
 import PropertyCard from '../components/PropertyCard';
@@ -31,6 +20,9 @@ import AddTaxDialog from '../components/AddTaxDialog';
 import RecordRentPaymentDialog from '../components/RecordRentPaymentDialog';
 import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
 import CloseLeaseDialog from '../components/CloseLeaseDialog';
+import {
+  PropertyGrowthChart, MonthlyFlowChart, CashFlowChart, ExpenseBreakdownChart, VacancyCard
+} from '../components/AnalyticsCharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
 
@@ -61,44 +53,15 @@ export default function Dashboard() {
   const [paymentTenant, setPaymentTenant] = useState(null);
   const [closeLeaseTenant, setCloseLeaseTenant] = useState(null);
 
-  const handleEditProperty = (property) => {
-    setEditingProperty(property);
-    setShowAddProperty(true);
-  };
+  const handleEditProperty = (p) => { setEditingProperty(p); setShowAddProperty(true); };
+  const handleClosePropertyDialog = (o) => { setShowAddProperty(o); if (!o) setEditingProperty(null); };
+  const handleEditTenant = (t) => { setEditingTenant(t); setShowAddTenant(true); };
+  const handleCloseTenantDialog = (o) => { setShowAddTenant(o); if (!o) setEditingTenant(null); };
+  const handleRecordPayment = (t) => { setPaymentTenant(t); setShowRecordPayment(true); };
+  const handleViewHistory = (t) => { setPaymentTenant(t); setShowPaymentHistory(true); };
+  const handleCloseLease = (t) => { setCloseLeaseTenant(t); setShowCloseLease(true); };
 
-  const handleClosePropertyDialog = (open) => {
-    setShowAddProperty(open);
-    if (!open) setEditingProperty(null);
-  };
-
-  const handleEditTenant = (tenant) => {
-    setEditingTenant(tenant);
-    setShowAddTenant(true);
-  };
-
-  const handleCloseTenantDialog = (open) => {
-    setShowAddTenant(open);
-    if (!open) setEditingTenant(null);
-  };
-
-  const handleRecordPayment = (tenant) => {
-    setPaymentTenant(tenant);
-    setShowRecordPayment(true);
-  };
-
-  const handleViewHistory = (tenant) => {
-    setPaymentTenant(tenant);
-    setShowPaymentHistory(true);
-  };
-
-  const handleCloseLease = (tenant) => {
-    setCloseLeaseTenant(tenant);
-    setShowCloseLease(true);
-  };
-
-  useEffect(() => {
-    fetchAllData();
-  }, []);
+  useEffect(() => { fetchAllData(); }, []);
 
   const fetchAllData = async () => {
     try {
@@ -114,197 +77,176 @@ export default function Dashboard() {
         axios.get(`${API}/rent-payments`)
       ]);
 
-      const [statsRes, propsRes, tenantsRes, expensesRes, utilsRes, taxesRes, remindersRes, rentPaymentsRes] = results;
+      const [s, p, t, e, u, tx, r, rp] = results;
+      if (s.status === 'fulfilled') setStats(s.value.data);
+      if (p.status === 'fulfilled') setProperties(p.value.data);
+      if (t.status === 'fulfilled') setTenants(t.value.data);
+      if (e.status === 'fulfilled') setExpenses(e.value.data);
+      if (u.status === 'fulfilled') setUtilities(u.value.data);
+      if (tx.status === 'fulfilled') setTaxes(tx.value.data);
+      if (r.status === 'fulfilled') setReminders(r.value.data);
+      if (rp.status === 'fulfilled') setRentPayments(rp.value.data);
 
-      if (statsRes.status === 'fulfilled') setStats(statsRes.value.data);
-      else console.error('Failed to load stats:', statsRes.reason);
-
-      if (propsRes.status === 'fulfilled') setProperties(propsRes.value.data);
-      else console.error('Failed to load properties:', propsRes.reason);
-
-      if (tenantsRes.status === 'fulfilled') setTenants(tenantsRes.value.data);
-      else console.error('Failed to load tenants:', tenantsRes.reason);
-
-      if (expensesRes.status === 'fulfilled') setExpenses(expensesRes.value.data);
-      else console.error('Failed to load expenses:', expensesRes.reason);
-
-      if (utilsRes.status === 'fulfilled') setUtilities(utilsRes.value.data);
-      else console.error('Failed to load utilities:', utilsRes.reason);
-
-      if (taxesRes.status === 'fulfilled') setTaxes(taxesRes.value.data);
-      else console.error('Failed to load taxes:', taxesRes.reason);
-
-      if (remindersRes.status === 'fulfilled') setReminders(remindersRes.value.data);
-      else console.error('Failed to load reminders:', remindersRes.reason);
-
-      if (rentPaymentsRes.status === 'fulfilled') setRentPayments(rentPaymentsRes.value.data);
-      else console.error('Failed to load rent payments:', rentPaymentsRes.reason);
-
-      const failedCount = results.filter(r => r.status === 'rejected').length;
-      if (failedCount > 0) {
-        toast.error(`Failed to load ${failedCount} data section(s)`);
-      }
+      const failed = results.filter(x => x.status === 'rejected').length;
+      if (failed > 0) toast.error(`Failed to load ${failed} section(s)`);
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load dashboard data');
+      console.error(error);
+      toast.error('Failed to load dashboard');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleExportExpenses = async () => {
-    try {
-      const response = await axios.get(`${API}/export/expenses`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'expenses.csv');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.success('Expenses exported successfully');
-    } catch (error) {
-      console.error('Error exporting expenses:', error);
-      toast.error('Failed to export expenses');
-    }
-  };
-
-  const handleExportTenants = async () => {
-    try {
-      const response = await axios.get(`${API}/export/tenants`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'tenants.csv');
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.success('Tenants exported successfully');
-    } catch (error) {
-      console.error('Error exporting tenants:', error);
-      toast.error('Failed to export tenants');
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFAF7]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2C4C3B] mx-auto"></div>
-          <p className="mt-4 text-[#7D7D7D]">Loading dashboard...</p>
+          <div className="inline-block w-1 h-8 bg-[#B89D5F] animate-pulse"></div>
+          <p className="mt-4 text-sm uppercase tracking-[0.22em] font-semibold text-[#64748B]">Loading</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F5F0]">
+    <div className="min-h-screen bg-[#FAFAF7]">
       {/* Header */}
-      <header className="bg-white border-b border-[#E6E2D8]">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+      <header className="bg-white border-b border-[#E5E2DA]">
+        <div className="max-w-[1400px] mx-auto px-8 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-[#2C4C3B]" data-testid="dashboard-title">
-                Property Dashboard
-              </h1>
-              <p className="text-sm text-[#7D7D7D] mt-1">Pattukottai, Tamil Nadu</p>
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 bg-[#0F172A] rounded-md flex items-center justify-center">
+                <Buildings size={20} className="text-[#B89D5F]" weight="fill" />
+              </div>
+              <div>
+                <h1 className="serif-display text-2xl text-[#0F172A]" data-testid="dashboard-title">
+                  Pattukottai Estates
+                </h1>
+                <p className="text-[10px] uppercase tracking-[0.28em] font-semibold text-[#64748B] mt-0.5">
+                  Property Portfolio · Tamil Nadu
+                </p>
+              </div>
             </div>
-            <div className="flex gap-3">
-              <Button
-                onClick={handleExportExpenses}
-                variant="outline"
-                className="border-[#E6E2D8] hover:border-[#D1CBBF] transition-all duration-200"
-                data-testid="export-expenses-btn"
-              >
-                <Download size={18} className="mr-2" />
-                Export Expenses
-              </Button>
-              <Button
-                onClick={handleExportTenants}
-                variant="outline"
-                className="border-[#E6E2D8] hover:border-[#D1CBBF] transition-all duration-200"
-                data-testid="export-tenants-btn"
-              >
-                <Download size={18} className="mr-2" />
-                Export Tenants
-              </Button>
+            <div className="hidden md:flex items-center gap-6 text-xs">
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#64748B]">Portfolio Size</p>
+                <p className="text-base font-semibold text-[#0F172A] tabular-nums">{stats?.properties_count || 0} Properties</p>
+              </div>
+              <div className="w-px h-8 bg-[#E5E2DA]"></div>
+              <div className="text-right">
+                <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#64748B]">Active Tenants</p>
+                <p className="text-base font-semibold text-[#0F172A] tabular-nums">{stats?.tenants_count || 0}</p>
+              </div>
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-          <StatsCard
-            icon={<House size={24} />}
-            label="Total Property Value"
-            value={`₹${(stats?.total_property_value || 0).toLocaleString('en-IN')}`}
-            color="#2C4C3B"
-            testId="stat-property-value"
-          />
-          <StatsCard
-            icon={<TrendUp size={24} />}
-            label="Total Appreciation"
-            value={`₹${(stats?.total_appreciation || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-            color="#7BA38A"
-            testId="stat-appreciation"
-          />
-          <StatsCard
-            icon={<CurrencyInr size={24} />}
-            label="Rent Collected"
-            value={`₹${(stats?.total_rental_income || 0).toLocaleString('en-IN')}`}
-            color="#2C4C3B"
-            testId="stat-rental-income"
-          />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <StatsCard
-            icon={<Receipt size={24} />}
-            label="Total Expenses"
-            value={`₹${(stats?.total_expenses || 0).toLocaleString('en-IN')}`}
-            color="#D96C4E"
-            testId="stat-expenses"
-          />
-          <StatsCard
-            icon={<ChartLine size={24} />}
-            label="Net Profit"
-            value={`₹${(stats?.net_profit || 0).toLocaleString('en-IN')}`}
-            color={stats?.net_profit >= 0 ? '#7BA38A' : '#D96C4E'}
-            testId="stat-net-profit"
-          />
-          <StatsCard
-            icon={<Users size={24} />}
-            label="Security Deposits Held"
-            value={`₹${(stats?.total_security_deposits || 0).toLocaleString('en-IN')}`}
-            trend="Refundable on exit"
-            color="#7BA38A"
-            testId="stat-security-deposits"
-          />
-        </div>
+      <main className="max-w-[1400px] mx-auto px-8 py-8">
+        {/* Headline KPIs */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#B89D5F]">01</span>
+            <h2 className="text-sm uppercase tracking-[0.18em] font-bold text-[#0F172A]">Portfolio Performance</h2>
+            <div className="flex-1 h-px bg-[#E5E2DA]"></div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <StatsCard
+              icon={<House size={18} />}
+              label="Total Property Value"
+              value={`₹${(stats?.total_property_value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+              trend={`Current market estimate`}
+              testId="stat-property-value"
+            />
+            <StatsCard
+              icon={<TrendUp size={18} />}
+              label="Capital Appreciation"
+              value={`₹${(stats?.total_appreciation || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
+              trend="Since purchase"
+              color="#047857"
+              accent
+              testId="stat-appreciation"
+            />
+            <StatsCard
+              icon={<CurrencyInr size={18} />}
+              label="Rent Collected"
+              value={`₹${(stats?.total_rental_income || 0).toLocaleString('en-IN')}`}
+              trend="All-time recorded"
+              testId="stat-rental-income"
+            />
+            <StatsCard
+              icon={<Receipt size={18} />}
+              label="Total Expenses"
+              value={`₹${(stats?.total_expenses || 0).toLocaleString('en-IN')}`}
+              trend="All operating costs"
+              color="#B91C1C"
+              accent
+              testId="stat-expenses"
+            />
+            <StatsCard
+              icon={<ChartLine size={18} />}
+              label="Net Profit"
+              value={`₹${(stats?.net_profit || 0).toLocaleString('en-IN')}`}
+              trend={(stats?.net_profit || 0) >= 0 ? 'Positive cash flow' : 'Operating at loss'}
+              color={(stats?.net_profit || 0) >= 0 ? '#047857' : '#B91C1C'}
+              accent
+              testId="stat-net-profit"
+            />
+            <StatsCard
+              icon={<Users size={18} />}
+              label="Security Deposits"
+              value={`₹${(stats?.total_security_deposits || 0).toLocaleString('en-IN')}`}
+              trend="Currently held · refundable"
+              testId="stat-security-deposits"
+            />
+          </div>
+        </section>
 
-        {/* Payment Reminders */}
-        <div className="mb-8">
+        {/* Reminders */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#B89D5F]">02</span>
+            <h2 className="text-sm uppercase tracking-[0.18em] font-bold text-[#0F172A]">Action Items</h2>
+            <div className="flex-1 h-px bg-[#E5E2DA]"></div>
+          </div>
           <PaymentReminders reminders={reminders} onRefresh={fetchAllData} />
-        </div>
+        </section>
 
-        {/* Properties Section */}
-        <section className="mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-[#2C4C3B]">
-              My Properties
-            </h2>
+        {/* Analytics */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#B89D5F]">03</span>
+            <h2 className="text-sm uppercase tracking-[0.18em] font-bold text-[#0F172A]">Analytics & Growth</h2>
+            <div className="flex-1 h-px bg-[#E5E2DA]"></div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <PropertyGrowthChart />
+            <MonthlyFlowChart />
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+            <CashFlowChart />
+            <ExpenseBreakdownChart />
+          </div>
+          <VacancyCard />
+        </section>
+
+        {/* Properties */}
+        <section className="mb-10">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#B89D5F]">04</span>
+            <h2 className="text-sm uppercase tracking-[0.18em] font-bold text-[#0F172A]">Properties</h2>
+            <div className="flex-1 h-px bg-[#E5E2DA]"></div>
             <Button
               onClick={() => setShowAddProperty(true)}
-              className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white transition-all duration-200"
+              size="sm"
+              className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs"
               data-testid="add-property-btn"
             >
-              <Plus size={20} className="mr-2" />
+              <Plus size={14} className="mr-1" />
               Add Property
             </Button>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {properties.map((property) => (
               <PropertyCard
                 key={property.id}
@@ -316,160 +258,90 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Tabs for detailed sections */}
-        <Tabs defaultValue="tenants" className="w-full">
-          <TabsList className="bg-white border border-[#E6E2D8] mb-6">
-            <TabsTrigger value="tenants" data-testid="tab-tenants">
-              <Users size={18} className="mr-2" />
-              Tenants
-            </TabsTrigger>
-            <TabsTrigger value="expenses" data-testid="tab-expenses">
-              <Receipt size={18} className="mr-2" />
-              Expenses
-            </TabsTrigger>
-            <TabsTrigger value="utilities" data-testid="tab-utilities">
-              <Lightning size={18} className="mr-2" />
-              Utilities
-            </TabsTrigger>
-            <TabsTrigger value="taxes" data-testid="tab-taxes">
-              <FileText size={18} className="mr-2" />
-              Property Tax
-            </TabsTrigger>
-          </TabsList>
+        {/* Operations */}
+        <section>
+          <div className="flex items-center gap-3 mb-5">
+            <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#B89D5F]">05</span>
+            <h2 className="text-sm uppercase tracking-[0.18em] font-bold text-[#0F172A]">Operations</h2>
+            <div className="flex-1 h-px bg-[#E5E2DA]"></div>
+          </div>
+          <Tabs defaultValue="tenants" className="w-full">
+            <TabsList className="bg-white border border-[#E5E2DA] mb-4">
+              <TabsTrigger value="tenants" data-testid="tab-tenants"><Users size={16} className="mr-1.5" />Tenants</TabsTrigger>
+              <TabsTrigger value="expenses" data-testid="tab-expenses"><Receipt size={16} className="mr-1.5" />Expenses</TabsTrigger>
+              <TabsTrigger value="utilities" data-testid="tab-utilities"><Lightning size={16} className="mr-1.5" />Utilities</TabsTrigger>
+              <TabsTrigger value="taxes" data-testid="tab-taxes"><FileText size={16} className="mr-1.5" />Property Tax</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value="tenants">
-            <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl sm:text-2xl font-semibold text-[#2C4C3B]">Tenants</h3>
-                <Button
-                  onClick={() => setShowAddTenant(true)}
-                  size="sm"
-                  className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white"
-                  data-testid="add-tenant-btn"
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add Tenant
-                </Button>
+            <TabsContent value="tenants">
+              <div className="bg-white border border-[#E5E2DA] rounded-lg p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-base font-semibold text-[#0F172A]">Tenant Management</h3>
+                  <Button onClick={() => setShowAddTenant(true)} size="sm" className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs" data-testid="add-tenant-btn">
+                    <Plus size={14} className="mr-1" />Add Tenant
+                  </Button>
+                </div>
+                <TenantList
+                  tenants={tenants}
+                  properties={properties}
+                  rentPayments={rentPayments}
+                  onRefresh={fetchAllData}
+                  onEdit={handleEditTenant}
+                  onRecordPayment={handleRecordPayment}
+                  onViewHistory={handleViewHistory}
+                  onCloseLease={handleCloseLease}
+                />
               </div>
-              <TenantList
-                tenants={tenants}
-                properties={properties}
-                rentPayments={rentPayments}
-                onRefresh={fetchAllData}
-                onEdit={handleEditTenant}
-                onRecordPayment={handleRecordPayment}
-                onViewHistory={handleViewHistory}
-                onCloseLease={handleCloseLease}
-              />
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="expenses">
-            <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl sm:text-2xl font-semibold text-[#2C4C3B]">Expenses</h3>
-                <Button
-                  onClick={() => setShowAddExpense(true)}
-                  size="sm"
-                  className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white"
-                  data-testid="add-expense-btn"
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add Expense
-                </Button>
+            <TabsContent value="expenses">
+              <div className="bg-white border border-[#E5E2DA] rounded-lg p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-base font-semibold text-[#0F172A]">Expenses</h3>
+                  <Button onClick={() => setShowAddExpense(true)} size="sm" className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs" data-testid="add-expense-btn">
+                    <Plus size={14} className="mr-1" />Add Expense
+                  </Button>
+                </div>
+                <ExpenseList expenses={expenses} properties={properties} onRefresh={fetchAllData} />
               </div>
-              <ExpenseList expenses={expenses} properties={properties} onRefresh={fetchAllData} />
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="utilities">
-            <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl sm:text-2xl font-semibold text-[#2C4C3B]">Utility Payments</h3>
-                <Button
-                  onClick={() => setShowAddUtility(true)}
-                  size="sm"
-                  className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white"
-                  data-testid="add-utility-btn"
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add Payment
-                </Button>
+            <TabsContent value="utilities">
+              <div className="bg-white border border-[#E5E2DA] rounded-lg p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-base font-semibold text-[#0F172A]">Utility Payments</h3>
+                  <Button onClick={() => setShowAddUtility(true)} size="sm" className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs" data-testid="add-utility-btn">
+                    <Plus size={14} className="mr-1" />Add Payment
+                  </Button>
+                </div>
+                <UtilityPaymentsList utilities={utilities} properties={properties} onRefresh={fetchAllData} />
               </div>
-              <UtilityPaymentsList utilities={utilities} properties={properties} onRefresh={fetchAllData} />
-            </div>
-          </TabsContent>
+            </TabsContent>
 
-          <TabsContent value="taxes">
-            <div className="bg-white border border-[#E6E2D8] rounded-lg p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl sm:text-2xl font-semibold text-[#2C4C3B]">Property Tax</h3>
-                <Button
-                  onClick={() => setShowAddTax(true)}
-                  size="sm"
-                  className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white"
-                  data-testid="add-tax-btn"
-                >
-                  <Plus size={18} className="mr-2" />
-                  Add Tax Record
-                </Button>
+            <TabsContent value="taxes">
+              <div className="bg-white border border-[#E5E2DA] rounded-lg p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="text-base font-semibold text-[#0F172A]">Property Tax</h3>
+                  <Button onClick={() => setShowAddTax(true)} size="sm" className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs" data-testid="add-tax-btn">
+                    <Plus size={14} className="mr-1" />Add Tax Record
+                  </Button>
+                </div>
+                <PropertyTaxList taxes={taxes} properties={properties} onRefresh={fetchAllData} />
               </div>
-              <PropertyTaxList taxes={taxes} properties={properties} onRefresh={fetchAllData} />
-            </div>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+        </section>
       </main>
 
       {/* Dialogs */}
-      <AddPropertyDialog
-        open={showAddProperty}
-        onOpenChange={handleClosePropertyDialog}
-        onSuccess={fetchAllData}
-        editProperty={editingProperty}
-      />
-      <AddTenantDialog
-        open={showAddTenant}
-        onOpenChange={handleCloseTenantDialog}
-        properties={properties}
-        onSuccess={fetchAllData}
-        editTenant={editingTenant}
-      />
-      <RecordRentPaymentDialog
-        open={showRecordPayment}
-        onOpenChange={setShowRecordPayment}
-        tenant={paymentTenant}
-        onSuccess={fetchAllData}
-      />
-      <PaymentHistoryDialog
-        open={showPaymentHistory}
-        onOpenChange={setShowPaymentHistory}
-        tenant={paymentTenant}
-        onUpdated={fetchAllData}
-      />
-      <CloseLeaseDialog
-        open={showCloseLease}
-        onOpenChange={(o) => { setShowCloseLease(o); if (!o) setCloseLeaseTenant(null); }}
-        tenant={closeLeaseTenant}
-        onSuccess={fetchAllData}
-      />
-      <AddExpenseDialog
-        open={showAddExpense}
-        onOpenChange={setShowAddExpense}
-        properties={properties}
-        onSuccess={fetchAllData}
-      />
-      <AddUtilityDialog
-        open={showAddUtility}
-        onOpenChange={setShowAddUtility}
-        properties={properties}
-        onSuccess={fetchAllData}
-      />
-      <AddTaxDialog
-        open={showAddTax}
-        onOpenChange={setShowAddTax}
-        properties={properties}
-        onSuccess={fetchAllData}
-      />
+      <AddPropertyDialog open={showAddProperty} onOpenChange={handleClosePropertyDialog} onSuccess={fetchAllData} editProperty={editingProperty} />
+      <AddTenantDialog open={showAddTenant} onOpenChange={handleCloseTenantDialog} properties={properties} onSuccess={fetchAllData} editTenant={editingTenant} />
+      <AddExpenseDialog open={showAddExpense} onOpenChange={setShowAddExpense} properties={properties} onSuccess={fetchAllData} />
+      <AddUtilityDialog open={showAddUtility} onOpenChange={setShowAddUtility} properties={properties} onSuccess={fetchAllData} />
+      <AddTaxDialog open={showAddTax} onOpenChange={setShowAddTax} properties={properties} onSuccess={fetchAllData} />
+      <RecordRentPaymentDialog open={showRecordPayment} onOpenChange={setShowRecordPayment} tenant={paymentTenant} onSuccess={fetchAllData} />
+      <PaymentHistoryDialog open={showPaymentHistory} onOpenChange={setShowPaymentHistory} tenant={paymentTenant} onUpdated={fetchAllData} />
+      <CloseLeaseDialog open={showCloseLease} onOpenChange={(o) => { setShowCloseLease(o); if (!o) setCloseLeaseTenant(null); }} tenant={closeLeaseTenant} onSuccess={fetchAllData} />
     </div>
   );
 }

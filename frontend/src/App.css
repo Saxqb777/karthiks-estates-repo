@@ -1,4 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&display=swap');
+
+:root {
+  /* Light Executive / Corporate Bank Theme */
+  --color-bg: #FAFAF7;
+  --color-surface: #FFFFFF;
+  --color-surface-2: #F4F4EF;
+  --color-border: #E5E2DA;
+  --color-border-strong: #C9C5BA;
+
+  --color-ink: #0F172A;
+  --color-ink-2: #1E293B;
+  --color-muted: #64748B;
+  --color-muted-2: #94A3B8;
+
+  --color-accent: #B89D5F;        /* royal gold */
+  --color-accent-dark: #8E7846;
+  --color-accent-soft: rgba(184, 157, 95, 0.12);
+
+  --color-success: #047857;
+  --color-success-soft: rgba(4, 120, 87, 0.10);
+  --color-danger: #B91C1C;
+  --color-danger-soft: rgba(185, 28, 28, 0.10);
+  --color-info: #1D4ED8;
+}
 
 * {
   box-sizing: border-box;
@@ -7,20 +31,60 @@
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Manrope', sans-serif;
-  background-color: #F7F5F0;
-  color: #2E2E2E;
+  font-family: 'Inter', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-ink);
+  font-feature-settings: 'cv11', 'ss01';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Work Sans', sans-serif;
+  font-family: 'Plus Jakarta Sans', sans-serif;
   margin: 0;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
 }
 
-code, pre {
+.serif-display {
+  font-family: 'Cormorant Garamond', serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+code, pre, .mono {
   font-family: 'JetBrains Mono', monospace;
 }
 
 .App {
   min-height: 100vh;
+}
+
+/* Subtle card hover */
+.card-hover {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 4px 12px rgba(15, 23, 42, 0.04);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-strong);
+  border-radius: 5px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-muted);
 }
