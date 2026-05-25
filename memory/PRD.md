@@ -1,66 +1,51 @@
-# Property Management Dashboard - PRD
+# PRD — Pattukottai Estates Property Management Dashboard
 
-## Original Problem Statement
-User purchased 2 townhouses in India, Tamil Nadu, Pattukottai. Needs a dashboard that calculates total cost of property, live appreciation, rental income, management expenses, property tax, water and electricity payments, etc.
+## Problem Statement
+Property management dashboard for two townhouses in Pattukottai, Tamil Nadu, India.
+Tracks: total cost, live appreciation, rental income, expenses, property tax, utilities.
 
-## User Choices
-- Data Entry: Both manual and import options
-- Appreciation: Rate-based (annual %)
-- Rental: Advanced with tenant management + payment reminders
-- Access: Single user
+## Core Requirements
+- Single user access
+- Manual entry + future CSV import
+- Annual appreciation-rate based projection
+- Advanced rental income tracking with tenant management + payment reminders
+- Asia/Kolkata (IST) timezone for all date logic
+- "Light Executive — Corporate Bank Dashboard" theme (Cormorant Garamond, navy/gold)
 
 ## Architecture
-- **Backend**: FastAPI + MongoDB (motor async driver)
-- **Frontend**: React 19 + Shadcn UI + Phosphor Icons + Recharts
-- **Design**: Organic & Earthy theme (Forest Green #2C4C3B + Terracotta #D96C4E + Warm Sand #F7F5F0)
-- **Typography**: Work Sans (headings), Manrope (body), JetBrains Mono (code)
+- Backend: FastAPI + Motor (MongoDB) at /app/backend/server.py
+- Frontend: React + Shadcn UI + Recharts at /app/frontend/src/
+- Email: Resend (key in backend/.env)
 
-## Core Requirements (Static)
-1. Property CRUD with appreciation calculation (compound annual rate)
-2. Tenant management with payment status tracking
-3. Expense tracking with categories (maintenance, repairs, insurance, other)
-4. Utility payments (water, electricity) with due dates
-5. Property tax records by year
-6. Dashboard stats (total value, appreciation, rental income, net profit)
-7. Payment reminders for overdue items
-8. CSV export for tenants and expenses
+## DB Collections
+properties, tenants, rent_payments, expenses, utility_payments, property_taxes
 
-## What's Been Implemented (2026-02)
-- ✅ Full backend with all CRUD endpoints (23 tests passing)
-- ✅ Dashboard with 4 stats cards (Property Value, Appreciation, Annual Rental, Net Profit)
-- ✅ Property cards with live appreciation calculation
-- ✅ Tenant management with payment status (paid/pending/overdue)
-- ✅ Expense tracking with category color coding
-- ✅ Utility payments with overdue detection
-- ✅ Property tax tracking by year
-- ✅ Payment reminders section (rent pending, overdue utilities, unpaid taxes)
-- ✅ CSV export for expenses and tenants
-- ✅ All Add dialogs with form validation
-- ✅ Promise.allSettled error resilience
-- ✅ Datetime timezone-naive/aware compatibility fix
+## Completed (chronological)
+- [DONE] Dashboard scaffold (React + FastAPI + Mongo)
+- [DONE] Resend email integration for pending reminders
+- [DONE] Edit/Delete across all entities (AlertDialog)
+- [DONE] Advanced tenant mgmt: security deposit, lease start, monthly rent history
+- [DONE] Close Lease flow with net unrecovered dues vs deposit calc
+- [DONE] IST timezone correction for date evaluation
+- [DONE] Light Executive theme overhaul + Recharts analytics
+- [DONE] Highest market sell offer tracking on property cards
+- [DONE] One-click "Mark Paid" on dashboard reminders
+- [DONE 2026-02-25] Pending Actions full-sentence fix (removed truncate, added break-words)
+- [DONE 2026-02-25] Portfolio-level / General Business Expenses
+  - Dialog label: "Property / Scope *"
+  - Option: "General Business Expense (Not Tied to a Property)"
+  - List badge: "Portfolio / General"
+  - Backend already supported Optional[str] property_id; stats aggregate all expenses
 
-## Prioritized Backlog
+## Backlog (Prioritised)
+- P1: CSV bulk import for Properties / Tenants / Expenses
+- P2: Refactor server.py (>850 lines) → routers + models split
+- P2: Edit Expense dialog (only delete currently exists)
 
-### P1 - Important Enhancements
-- Replace native HTML date inputs with shadcn Calendar+Popover component
-- Add charts (income vs expenses, monthly cash flow) using Recharts
-- Edit functionality for properties, expenses, utilities
-- CSV import for bulk data entry
-- Property-level filtering on lists
-
-### P2 - Nice to Have
-- Email/SMS payment reminders (via SendGrid/Twilio)
-- Document storage for receipts/contracts
-- Profit/Loss statement PDF generation
-- Multi-user access with role-based permissions
-- Historical appreciation graph
-- Rental yield calculator
+## Critical Notes
+- Timezone: Asia/Kolkata — DO NOT revert to UTC
+- Total Expenses includes: direct expenses + paid utilities + paid taxes + net unrecovered dues from past tenants
+- Theme: navy #0F172A, gold #B89D5F, parchment #F4F4EF — strict adherence
 
 ## Test Credentials
-No authentication required - single-user app.
-
-## Next Action Items
-1. Add charts for visual analytics (income vs expenses, cash flow)
-2. Add edit functionality for existing records
-3. Implement CSV import for bulk data entry
-4. Consider adding automated payment reminder notifications via email
+None — single-user app, no auth implemented.
