@@ -64,6 +64,21 @@ code, pre, .mono {
   min-height: 100vh;
 }
 
+/* Site-wide UPPERCASE styling — applied to all displayed text but excluded for inputs */
+body, h1, h2, h3, h4, h5, h6, p, span, div, label, button, a, td, th, li {
+  text-transform: uppercase;
+}
+
+/* Exemptions: user-typed values must preserve original case */
+input, textarea, select option, .preserve-case {
+  text-transform: none !important;
+}
+
+/* Inputs should still use uppercase placeholders but preserve typed text */
+input::placeholder, textarea::placeholder {
+  text-transform: uppercase;
+}
+
 /* Subtle card hover */
 .card-hover {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;

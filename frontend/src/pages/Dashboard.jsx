@@ -129,8 +129,8 @@ export default function Dashboard() {
             </div>
             <div className="hidden md:flex items-center gap-6 text-xs">
               <div className="text-right">
-                <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#64748B]">Portfolio Size</p>
-                <p className="text-base font-semibold text-[#0F172A] tabular-nums">{stats?.properties_count || 0} Properties</p>
+                <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#64748B]">Properties Owned</p>
+                <p className="text-base font-semibold text-[#0F172A] tabular-nums">{stats?.properties_count || 0}</p>
               </div>
               <div className="w-px h-8 bg-[#E5E2DA]"></div>
               <div className="text-right">
@@ -147,7 +147,7 @@ export default function Dashboard() {
         <section className="mb-10">
           <div className="flex items-center gap-3 mb-5">
             <span className="text-[10px] uppercase tracking-[0.28em] font-bold text-[#B89D5F]">01</span>
-            <h2 className="text-sm uppercase tracking-[0.18em] font-bold text-[#0F172A]">Portfolio Performance</h2>
+            <h2 className="text-sm uppercase tracking-[0.18em] font-bold text-[#0F172A]">Business Performance</h2>
             <div className="flex-1 h-px bg-[#E5E2DA]"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

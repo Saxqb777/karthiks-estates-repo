@@ -72,7 +72,7 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="portfolio">
-                    Portfolio (All Properties / Business Expense)
+                    Business Expense (Both Properties)
                   </SelectItem>
                   {properties.map((property) => (
                     <SelectItem key={property.id} value={property.id}>
@@ -82,7 +82,7 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-[#64748B] mt-1">
-                Use "Portfolio" for expenses that apply to your overall business (e.g., software, accounting, legal).
+                Use "Business Expense" for costs that benefit both properties (e.g., software, accounting, legal).
               </p>
             </div>
             <div>
