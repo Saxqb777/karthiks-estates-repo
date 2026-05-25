@@ -53,6 +53,9 @@ class Property(BaseModel):
     purchase_date: str
     appreciation_rate: float  # Annual percentage
     image_url: str
+    highest_offer: float = 0.0
+    highest_offer_date: Optional[str] = ""
+    highest_offer_notes: Optional[str] = ""
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class PropertyCreate(BaseModel):
@@ -62,6 +65,9 @@ class PropertyCreate(BaseModel):
     purchase_date: str
     appreciation_rate: float
     image_url: str
+    highest_offer: float = 0.0
+    highest_offer_date: Optional[str] = ""
+    highest_offer_notes: Optional[str] = ""
 
 class PropertyUpdate(BaseModel):
     name: Optional[str] = None
@@ -70,6 +76,9 @@ class PropertyUpdate(BaseModel):
     purchase_date: Optional[str] = None
     appreciation_rate: Optional[float] = None
     image_url: Optional[str] = None
+    highest_offer: Optional[float] = None
+    highest_offer_date: Optional[str] = None
+    highest_offer_notes: Optional[str] = None
 
 class Tenant(BaseModel):
     model_config = ConfigDict(extra="ignore")

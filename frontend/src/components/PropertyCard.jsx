@@ -111,6 +111,39 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
               {property.appreciation_rate}%
             </span>
           </div>
+          {property.highest_offer > 0 && (
+            <div className="mt-2 pt-3 border-t border-dashed border-[#E5E2DA]">
+              <div className="flex justify-between items-baseline mb-1">
+                <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B89D5F]">Highest Offer Received</span>
+                <span className="text-base font-semibold text-[#0F172A] tabular-nums">
+                  ₹{property.highest_offer.toLocaleString('en-IN')}
+                </span>
+              </div>
+              {(() => {
+                const delta = property.highest_offer - currentValue;
+                const isAbove = delta >= 0;
+                return (
+                  <p className="text-[11px] text-[#64748B]">
+                    {isAbove ? (
+                      <span className="text-[#047857] font-medium">
+                        ₹{Math.abs(delta).toLocaleString('en-IN', { maximumFractionDigits: 0 })} above calculated value
+                      </span>
+                    ) : (
+                      <span className="text-[#B91C1C] font-medium">
+                        ₹{Math.abs(delta).toLocaleString('en-IN', { maximumFractionDigits: 0 })} below calculated value
+                      </span>
+                    )}
+                    {property.highest_offer_date && (
+                      <> · {new Date(property.highest_offer_date).toLocaleDateString('en-IN')}</>
+                    )}
+                  </p>
+                );
+              })()}
+              {property.highest_offer_notes && (
+                <p className="text-[11px] text-[#94A3B8] italic mt-1">"{property.highest_offer_notes}"</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
       <ConfirmDialog

@@ -14,7 +14,10 @@ const emptyForm = {
   address: '',
   purchase_price: '',
   purchase_date: '',
-  appreciation_rate: ''
+  appreciation_rate: '',
+  highest_offer: '',
+  highest_offer_date: '',
+  highest_offer_notes: ''
 };
 
 export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editProperty }) {
@@ -29,7 +32,10 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
         address: editProperty.address || '',
         purchase_price: editProperty.purchase_price?.toString() || '',
         purchase_date: editProperty.purchase_date ? editProperty.purchase_date.split('T')[0] : '',
-        appreciation_rate: editProperty.appreciation_rate?.toString() || ''
+        appreciation_rate: editProperty.appreciation_rate?.toString() || '',
+        highest_offer: editProperty.highest_offer?.toString() || '',
+        highest_offer_date: editProperty.highest_offer_date ? editProperty.highest_offer_date.split('T')[0] : '',
+        highest_offer_notes: editProperty.highest_offer_notes || ''
       });
     } else {
       setFormData(emptyForm);
@@ -45,6 +51,7 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
         ...formData,
         purchase_price: parseFloat(formData.purchase_price),
         appreciation_rate: parseFloat(formData.appreciation_rate),
+        highest_offer: parseFloat(formData.highest_offer) || 0,
         image_url: editProperty?.image_url || ''
       };
 
@@ -69,7 +76,7 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white" data-testid="add-property-dialog">
+      <DialogContent className="sm:max-w-[500px] bg-white max-h-[90vh] overflow-y-auto" data-testid="add-property-dialog">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold text-[#2C4C3B]">
             {isEditMode ? 'Edit Property' : 'Add New Property'}
@@ -139,6 +146,47 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
                 className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                 data-testid="property-rate-input"
               />
+            </div>
+
+            <div className="pt-2 border-t border-[#E5E2DA]">
+              <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-3">Market Offers Received (Optional)</p>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="highest_offer" className="text-[#2E2E2E]">Highest Offer (₹)</Label>
+                  <Input
+                    id="highest_offer"
+                    type="number"
+                    step="0.01"
+                    value={formData.highest_offer}
+                    onChange={(e) => setFormData({ ...formData, highest_offer: e.target.value })}
+                    placeholder="e.g., 5000000"
+                    className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                    data-testid="property-offer-input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="highest_offer_date" className="text-[#2E2E2E]">Offer Date</Label>
+                  <Input
+                    id="highest_offer_date"
+                    type="date"
+                    value={formData.highest_offer_date}
+                    onChange={(e) => setFormData({ ...formData, highest_offer_date: e.target.value })}
+                    className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                    data-testid="property-offer-date-input"
+                  />
+                </div>
+              </div>
+              <div className="mt-3">
+                <Label htmlFor="highest_offer_notes" className="text-[#2E2E2E]">Notes</Label>
+                <Input
+                  id="highest_offer_notes"
+                  value={formData.highest_offer_notes}
+                  onChange={(e) => setFormData({ ...formData, highest_offer_notes: e.target.value })}
+                  placeholder="e.g., offer from local builder, terms, etc."
+                  className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                  data-testid="property-offer-notes-input"
+                />
+              </div>
             </div>
           </div>
           <DialogFooter>
