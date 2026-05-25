@@ -102,38 +102,48 @@ export default function EstateLayoutCard() {
             No estate layout info recorded yet. Click the edit icon to add plot dimensions and upload the site plan.
           </p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 items-start">
-            {settings.combined_plot_frontage > 0 && settings.combined_plot_depth > 0 && (
-              <div className="space-y-2">
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Plot Dimensions</p>
-                  <p className="text-sm font-semibold text-[#0F172A] tabular-nums">
-                    {settings.combined_plot_frontage}′ × {settings.combined_plot_depth}′
-                  </p>
-                </div>
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Total Plot Area</p>
-                  <p className="text-sm font-semibold text-[#B89D5F] tabular-nums">
-                    {Math.round(totalPlotSqft).toLocaleString('en-IN')} sqft
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div className="md:border-l md:border-[#E5E2DA] md:pl-6 space-y-3">
-              {settings.estate_layout_image_url && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setShowView(true)}
-                  className="border-[#E5E2DA] hover:border-[#0F172A] text-xs"
-                  data-testid="view-estate-layout-btn"
-                >
-                  <Eye size={14} className="mr-1.5" />
-                  View Layout / Site Plan
-                </Button>
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6 pt-2">
+            <div className="flex divide-x divide-[#E5E2DA]">
+              {settings.combined_plot_frontage > 0 && settings.combined_plot_depth > 0 && (
+                <>
+                  <div className="pr-8">
+                    <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-2">Plot Dimensions</p>
+                    <p className="text-2xl font-semibold text-[#0F172A] tabular-nums tracking-tight">
+                      {settings.combined_plot_frontage}<span className="text-base text-[#94A3B8] font-normal">′</span>
+                      <span className="text-[#94A3B8] font-normal mx-1.5">×</span>
+                      {settings.combined_plot_depth}<span className="text-base text-[#94A3B8] font-normal">′</span>
+                    </p>
+                  </div>
+                  <div className="pl-8">
+                    <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-2">Total Plot Area</p>
+                    <p className="text-2xl font-semibold text-[#B89D5F] tabular-nums tracking-tight">
+                      {Math.round(totalPlotSqft).toLocaleString('en-IN')}
+                      <span className="text-sm text-[#B89D5F]/60 font-normal ml-1">sqft</span>
+                    </p>
+                  </div>
+                </>
               )}
             </div>
+            {settings.estate_layout_image_url ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowView(true)}
+                className="border-[#E5E2DA] hover:border-[#0F172A] hover:bg-[#F4F4EF] text-xs tracking-wider self-start sm:self-end"
+                data-testid="view-estate-layout-btn"
+              >
+                <Eye size={14} className="mr-1.5" />
+                View Site Plan
+              </Button>
+            ) : (
+              <button
+                onClick={openEdit}
+                className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#B89D5F] hover:text-[#8E7846] transition self-start sm:self-end"
+                data-testid="upload-estate-layout-prompt"
+              >
+                + Upload site plan
+              </button>
+            )}
           </div>
         )}
       </div>
