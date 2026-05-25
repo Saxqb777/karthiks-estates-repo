@@ -21,7 +21,7 @@ import RecordRentPaymentDialog from '../components/RecordRentPaymentDialog';
 import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
 import CloseLeaseDialog from '../components/CloseLeaseDialog';
 import {
-  PropertyGrowthChart, MonthlyFlowChart, CashFlowChart, ExpenseBreakdownChart, VacancyCard
+  MonthlyFlowChart, CashFlowChart, ExpenseBreakdownChart, VacancyCard
 } from '../components/AnalyticsCharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '../components/ui/button';
@@ -209,11 +209,10 @@ export default function Dashboard() {
             <div className="flex-1 h-px bg-[#E5E2DA]"></div>
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
-            <PropertyGrowthChart />
             <MonthlyFlowChart />
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
             <CashFlowChart />
+          </div>
+          <div className="mb-4">
             <ExpenseBreakdownChart />
           </div>
           <VacancyCard />
