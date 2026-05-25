@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import {
   House, TrendUp, CurrencyInr, ChartLine, Plus, Users, Receipt, Drop, Lightning,
-  FileText, Buildings, ChartBar, Briefcase
+  FileText, Buildings, ChartBar
 } from '@phosphor-icons/react';
 import StatsCard from '../components/StatsCard';
 import PropertyCard from '../components/PropertyCard';
@@ -187,15 +187,6 @@ export default function Dashboard() {
               label="Security Deposits"
               value={`₹${(stats?.total_security_deposits || 0).toLocaleString('en-IN')}`}
               testId="stat-security-deposits"
-            />
-            <StatsCard
-              icon={<Briefcase size={18} />}
-              label={`Business Overhead · ${stats?.business_overhead_fy_label || 'YTD'}`}
-              value={`₹${(stats?.business_overhead_ytd || 0).toLocaleString('en-IN')}`}
-              subValue={(stats?.business_overhead_total || 0) > (stats?.business_overhead_ytd || 0) ? `₹${(stats?.business_overhead_total || 0).toLocaleString('en-IN')} all-time` : null}
-              color="#8E7846"
-              accent
-              testId="stat-business-overhead"
             />
           </div>
         </section>
