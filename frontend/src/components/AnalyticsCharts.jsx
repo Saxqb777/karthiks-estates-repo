@@ -12,11 +12,14 @@ const COLORS = ['#B89D5F', '#0F172A', '#047857', '#B91C1C', '#1D4ED8', '#7C3AED'
 
 const formatINR = (v) => `₹${(v || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 
-const ChartCard = ({ title, subtitle, children, testId }) => (
+const ChartCard = ({ title, subtitle, children, testId, action }) => (
   <div className="bg-white border border-[#E5E2DA] rounded-lg p-6 card-hover" data-testid={testId}>
-    <div className="mb-4">
-      <h3 className="text-base font-semibold text-[#0F172A] tracking-tight">{title}</h3>
-      {subtitle && <p className="text-xs text-[#64748B] mt-1">{subtitle}</p>}
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div>
+        <h3 className="text-base font-semibold text-[#0F172A] tracking-tight">{title}</h3>
+        {subtitle && <p className="text-xs text-[#64748B] mt-1">{subtitle}</p>}
+      </div>
+      {action}
     </div>
     {children}
   </div>
@@ -76,29 +79,41 @@ export function PropertyGrowthChart() {
   );
 }
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+
 // Helper: Indian Financial Year (April-March)
 const getCurrentFY = () => {
   const now = new Date();
   return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
 };
 const FY_OPTIONS = [2024, 2025, 2026].filter(y => y <= getCurrentFY());
+const fyLabel = (y) => `FY ${y}–${String(y + 1).slice(2)}`;
 
-const FYTabs = ({ value, onChange, testIdPrefix }) => (
-  <div className="flex items-center gap-1 mb-3" data-testid={`${testIdPrefix}-fy-tabs`}>
-    {FY_OPTIONS.map((y) => (
-      <button
-        key={y}
-        onClick={() => onChange(y)}
-        className={`px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] font-semibold rounded-sm transition ${
-          value === y
-            ? 'bg-[#0F172A] text-white'
-            : 'bg-transparent text-[#64748B] hover:text-[#0F172A] border border-[#E5E2DA]'
-        }`}
-        data-testid={`${testIdPrefix}-fy-${y}`}
-      >
-        FY {y}–{String(y + 1).slice(2)}
-      </button>
-    ))}
+const FYDropdown = ({ value, onChange, testIdPrefix }) => (
+  <Select value={String(value)} onValueChange={(v) => onChange(parseInt(v))}>
+    <SelectTrigger
+      className="w-[140px] h-8 text-xs border-[#E5E2DA] bg-white text-[#0F172A] focus:ring-0 focus:ring-offset-0"
+      data-testid={`${testIdPrefix}-fy-dropdown`}
+    >
+      <SelectValue />
+    </SelectTrigger>
+    <SelectContent>
+      {FY_OPTIONS.map((y) => (
+        <SelectItem key={y} value={String(y)} data-testid={`${testIdPrefix}-fy-${y}`}>
+          {fyLabel(y)}
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+);
+
+const SummaryRow = ({ label, value, color, dotColor, testId }) => (
+  <div className="py-3 border-b border-[#F4F4EF] last:border-0" data-testid={testId}>
+    <div className="flex items-center gap-2 mb-1">
+      {dotColor && <span className="w-2 h-2 rounded-full" style={{ backgroundColor: dotColor }} />}
+      <p className="text-[11px] text-[#64748B]">{label}</p>
+    </div>
+    <p className="text-lg font-semibold tabular-nums" style={{ color: color || '#0F172A' }}>{value}</p>
   </div>
 );
 
@@ -114,25 +129,32 @@ export function MonthlyFlowChart() {
 
   const totalRent = data.reduce((s, d) => s + (d.rent_collected || 0), 0);
   const totalExp = data.reduce((s, d) => s + (d.expenses || 0), 0);
+  const net = totalRent - totalExp;
 
   return (
     <ChartCard
       title="Monthly Income vs Expenses"
-      subtitle={`FY ${fy}–${String(fy + 1).slice(2)} (Apr ${String(fy).slice(2)} – Mar ${String(fy + 1).slice(2)}) · Rent ${formatINR(totalRent)} · Expenses ${formatINR(totalExp)}`}
+      subtitle={`${fyLabel(fy)} · Apr ${String(fy).slice(2)} – Mar ${String(fy + 1).slice(2)}`}
       testId="chart-monthly-flow"
+      action={<FYDropdown value={fy} onChange={setFy} testIdPrefix="monthly-flow" />}
     >
-      <FYTabs value={fy} onChange={setFy} testIdPrefix="monthly-flow" />
-      <ResponsiveContainer width="100%" height={280}>
-        <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E2DA" />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} />
-          <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatINR(v)} />
-          <Legend wrapperStyle={{ fontSize: 12 }} />
-          <Bar dataKey="rent_collected" name="Rent Collected" fill="#047857" radius={[4, 4, 0, 0]} />
-          <Bar dataKey="expenses" name="Expenses" fill="#B91C1C" radius={[4, 4, 0, 0]} />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-6 items-center">
+        <ResponsiveContainer width="100%" height={280}>
+          <BarChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E2DA" />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} />
+            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatINR(v)} />
+            <Bar dataKey="rent_collected" name="Rent Collected" fill="#047857" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expenses" name="Expenses" fill="#B91C1C" radius={[4, 4, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="lg:border-l lg:border-[#E5E2DA] lg:pl-5">
+          <SummaryRow label="Rent Collected" value={formatINR(totalRent)} color="#047857" dotColor="#047857" testId="summary-rent" />
+          <SummaryRow label="Expenses" value={formatINR(totalExp)} color="#B91C1C" dotColor="#B91C1C" testId="summary-expenses" />
+          <SummaryRow label="Net" value={formatINR(net)} color={net >= 0 ? '#0F172A' : '#B91C1C'} testId="summary-net" />
+        </div>
+      </div>
     </ChartCard>
   );
 }
@@ -154,30 +176,39 @@ export function CashFlowChart() {
       .catch(e => console.error('Cashflow error:', e));
   }, [fy]);
 
+  const incoming = data.reduce((s, d) => s + Math.max(0, d.monthly), 0);
+  const outgoing = data.reduce((s, d) => s - Math.min(0, d.monthly), 0);
   const fyNet = data.length > 0 ? data[data.length - 1].cumulative : 0;
 
   return (
     <ChartCard
       title="Cumulative Net Profit"
-      subtitle={`FY ${fy}–${String(fy + 1).slice(2)} running net: ${formatINR(fyNet)}`}
+      subtitle={`${fyLabel(fy)} running cash flow`}
       testId="chart-cash-flow"
+      action={<FYDropdown value={fy} onChange={setFy} testIdPrefix="cash-flow" />}
     >
-      <FYTabs value={fy} onChange={setFy} testIdPrefix="cash-flow" />
-      <ResponsiveContainer width="100%" height={280}>
-        <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-          <defs>
-            <linearGradient id="goldFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#B89D5F" stopOpacity={0.4} />
-              <stop offset="95%" stopColor="#B89D5F" stopOpacity={0.02} />
-            </linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E2DA" />
-          <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} />
-          <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
-          <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatINR(v)} />
-          <Area type="monotone" dataKey="cumulative" name="Cumulative" stroke="#B89D5F" strokeWidth={2.5} fill="url(#goldFill)" />
-        </AreaChart>
-      </ResponsiveContainer>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-6 items-center">
+        <ResponsiveContainer width="100%" height={280}>
+          <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="goldFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#B89D5F" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#B89D5F" stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#E5E2DA" />
+            <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748B' }} />
+            <YAxis tick={{ fontSize: 11, fill: '#64748B' }} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
+            <Tooltip contentStyle={tooltipStyle} formatter={(v) => formatINR(v)} />
+            <Area type="monotone" dataKey="cumulative" name="Cumulative" stroke="#B89D5F" strokeWidth={2.5} fill="url(#goldFill)" />
+          </AreaChart>
+        </ResponsiveContainer>
+        <div className="lg:border-l lg:border-[#E5E2DA] lg:pl-5">
+          <SummaryRow label="Incoming (+)" value={formatINR(incoming)} color="#047857" dotColor="#047857" testId="summary-incoming" />
+          <SummaryRow label="Outgoing (−)" value={formatINR(outgoing)} color="#B91C1C" dotColor="#B91C1C" testId="summary-outgoing" />
+          <SummaryRow label="Net (=)" value={formatINR(fyNet)} color={fyNet >= 0 ? '#0F172A' : '#B91C1C'} dotColor="#B89D5F" testId="summary-cumulative" />
+        </div>
+      </div>
     </ChartCard>
   );
 }
