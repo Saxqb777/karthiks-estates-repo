@@ -26,24 +26,41 @@ export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, on
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (editPayment && open) {
-      setFormData({
-        amount: editPayment.amount?.toString() || '',
-        payment_date: editPayment.payment_date ? editPayment.payment_date.split('T')[0] : '',
-        month: editPayment.month?.toString() || '1',
-        year: editPayment.year?.toString() || today.getFullYear().toString(),
-        notes: editPayment.notes || ''
-      });
-    } else if (tenant && open) {
-      const now = new Date();
-      setFormData({
-        amount: tenant.monthly_rent?.toString() || '',
-        payment_date: now.toISOString().split('T')[0],
-        month: (now.getMonth() + 1).toString(),
-        year: now.getFullYear().toString(),
-        notes: ''
-      });
-    }
+    const init = async () => {
+      if (editPayment && open) {
+        setFormData({
+          amount: editPayment.amount?.toString() || '',
+          payment_date: editPayment.payment_date ? editPayment.payment_date.split('T')[0] : '',
+          month: editPayment.month?.toString() || '1',
+          year: editPayment.year?.toString() || today.getFullYear().toString(),
+          notes: editPayment.notes || ''
+        });
+      } else if (tenant && open) {
+        const now = new Date();
+        // Try to suggest the earliest unpaid month
+        let suggestedMonth = now.getMonth() + 1;
+        let suggestedYear = now.getFullYear();
+        try {
+          const res = await axios.get(`${API}/tenants/${tenant.id}/pending-dues-estimate`);
+          const breakdown = res.data?.month_breakdown || [];
+          const firstUnpaid = breakdown.find(m => m.balance > 0);
+          if (firstUnpaid) {
+            suggestedMonth = firstUnpaid.month;
+            suggestedYear = firstUnpaid.year;
+          }
+        } catch (err) {
+          // Fall back to current month if estimate fails
+        }
+        setFormData({
+          amount: tenant.monthly_rent?.toString() || '',
+          payment_date: now.toISOString().split('T')[0],
+          month: suggestedMonth.toString(),
+          year: suggestedYear.toString(),
+          notes: ''
+        });
+      }
+    };
+    init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant, editPayment, open]);
 

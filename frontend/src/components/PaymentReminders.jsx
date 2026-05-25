@@ -1,23 +1,23 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Bell, EnvelopeSimple } from '@phosphor-icons/react';
+import { Bell, EnvelopeSimple, CheckCircle, CurrencyInr } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
 export default function PaymentReminders({ reminders, onRefresh }) {
   const [sending, setSending] = useState(false);
+  const [resolvingId, setResolvingId] = useState(null);
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high':
-        return 'border-[#D96C4E] bg-[#D96C4E]/10';
-      case 'medium':
-        return 'border-[#D96C4E] bg-[#D96C4E]/5';
-      default:
-        return 'border-[#7D7D7D] bg-[#7D7D7D]/5';
+      case 'high': return 'border-[#B91C1C] bg-[#FEE2E2]/40';
+      case 'medium': return 'border-[#B89D5F] bg-[#B89D5F]/10';
+      default: return 'border-[#E5E2DA] bg-[#F4F4EF]';
     }
   };
 
@@ -27,64 +27,157 @@ export default function PaymentReminders({ reminders, onRefresh }) {
       const response = await axios.post(`${API}/send-reminders-email`);
       toast.success(`Email sent! ${response.data.reminders_count} reminder(s) delivered.`);
     } catch (error) {
-      console.error('Error sending email:', error);
-      const errorMsg = error.response?.data?.detail || 'Failed to send email';
-      toast.error(errorMsg);
+      console.error(error);
+      toast.error(error.response?.data?.detail || 'Failed to send email');
     } finally {
       setSending(false);
     }
   };
 
+  const handleMarkRentPaid = async (reminder) => {
+    if (!reminder.tenant_id || !reminder.property_id) return;
+    // Extract month/year from message like "Rent unpaid for X (5/2026)..."
+    const match = reminder.message.match(/\((\d+)\/(\d+)\)/);
+    if (!match) {
+      toast.error('Could not parse month/year from reminder');
+      return;
+    }
+    const month = parseInt(match[1]);
+    const year = parseInt(match[2]);
+    // Extract amount
+    const amtMatch = reminder.message.match(/₹([\d,\.]+)/);
+    const amount = amtMatch ? parseFloat(amtMatch[1].replace(/,/g, '')) : 0;
+
+    setResolvingId(`${reminder.tenant_id}-${month}-${year}`);
+    try {
+      await axios.post(`${API}/rent-payments`, {
+        tenant_id: reminder.tenant_id,
+        property_id: reminder.property_id,
+        amount,
+        payment_date: new Date().toISOString().split('T')[0],
+        month,
+        year,
+        notes: 'Marked paid from reminder'
+      });
+      toast.success(`Marked ${monthNames[month - 1]} ${year} as paid`);
+      onRefresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to mark as paid');
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const handleMarkUtilityPaid = async (reminder) => {
+    if (!reminder.utility_id) return;
+    setResolvingId(reminder.utility_id);
+    try {
+      await axios.patch(`${API}/utility-payments/${reminder.utility_id}`, {
+        paid_status: true,
+        payment_date: new Date().toISOString()
+      });
+      toast.success('Utility payment marked as paid');
+      onRefresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to mark as paid');
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const handleMarkTaxPaid = async (reminder) => {
+    if (!reminder.tax_id) return;
+    setResolvingId(reminder.tax_id);
+    try {
+      await axios.patch(`${API}/property-taxes/${reminder.tax_id}`, {
+        paid_status: true,
+        payment_date: new Date().toISOString()
+      });
+      toast.success('Property tax marked as paid');
+      onRefresh();
+    } catch (error) {
+      console.error(error);
+      toast.error('Failed to mark as paid');
+    } finally {
+      setResolvingId(null);
+    }
+  };
+
+  const resolveHandler = (reminder) => {
+    if (reminder.type === 'rent') return () => handleMarkRentPaid(reminder);
+    if (reminder.type === 'utility') return () => handleMarkUtilityPaid(reminder);
+    if (reminder.type === 'tax') return () => handleMarkTaxPaid(reminder);
+    return null;
+  };
+
   return (
-    <div className="bg-white border border-[#E6E2D8] rounded-lg p-6" data-testid="payment-reminders">
+    <div className="bg-white border border-[#E5E2DA] rounded-lg p-6" data-testid="payment-reminders">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center">
-          <Bell size={24} className="text-[#D96C4E] mr-3" />
-          <h3 className="text-xl font-semibold text-[#2C4C3B]">Payment Reminders</h3>
-          <span className="ml-3 bg-[#D96C4E] text-white text-xs font-bold px-2 py-1 rounded-full">
-            {reminders.length}
-          </span>
+          <Bell size={20} className="text-[#B89D5F] mr-3" />
+          <h3 className="text-base font-semibold text-[#0F172A]">Pending Actions</h3>
+          {reminders.length > 0 && (
+            <span className="ml-3 bg-[#0F172A] text-white text-[10px] font-bold px-2 py-0.5 rounded-full tabular-nums">
+              {reminders.length}
+            </span>
+          )}
         </div>
         <Button
           onClick={handleSendEmail}
           disabled={sending}
           size="sm"
-          className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white transition-all duration-200"
+          variant="outline"
+          className="border-[#E5E2DA] hover:border-[#0F172A] text-xs"
           data-testid="send-reminders-email-btn"
         >
-          <EnvelopeSimple size={18} className="mr-2" />
-          {sending ? 'Sending...' : 'Send Reminders Now'}
+          <EnvelopeSimple size={14} className="mr-1.5" />
+          {sending ? 'Sending...' : 'Email Me'}
         </Button>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2">
         {reminders.length === 0 ? (
-          <div className="text-center py-8 text-[#7D7D7D]">
-            <p>All caught up! No pending payments at this time.</p>
+          <div className="text-center py-6 text-sm text-[#64748B]">
+            All caught up — no pending actions at this time.
           </div>
         ) : (
-          reminders.map((reminder, index) => (
-          <div
-            key={index}
-            className={`p-4 border rounded-lg ${getPriorityColor(reminder.priority)}`}
-            data-testid={`reminder-${index}`}
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
-                    {reminder.type}
-                  </span>
-                  <span className={`text-xs font-bold uppercase ${
-                    reminder.priority === 'high' ? 'text-[#D96C4E]' : 'text-[#7D7D7D]'
-                  }`}>
-                    {reminder.priority} Priority
-                  </span>
+          reminders.map((reminder, index) => {
+            const handler = resolveHandler(reminder);
+            const reminderKey = `${reminder.tenant_id || reminder.utility_id || reminder.tax_id || index}-${reminder.message}`;
+            const isResolving = resolvingId && (resolvingId === reminder.utility_id || resolvingId === reminder.tax_id || resolvingId.includes(reminder.tenant_id || ''));
+            return (
+              <div
+                key={reminderKey}
+                className={`p-4 border rounded-md flex items-center justify-between gap-4 ${getPriorityColor(reminder.priority)}`}
+                data-testid={`reminder-${index}`}
+              >
+                <div className="flex items-center gap-3 flex-1 min-w-0">
+                  {reminder.type === 'rent' && <CurrencyInr size={18} className="text-[#B91C1C] flex-shrink-0" />}
+                  {reminder.type === 'utility' && <Bell size={18} className="text-[#B89D5F] flex-shrink-0" />}
+                  {reminder.type === 'tax' && <Bell size={18} className="text-[#B91C1C] flex-shrink-0" />}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] block mb-0.5">
+                      {reminder.type} · {reminder.priority} priority
+                    </span>
+                    <p className="text-sm text-[#0F172A] truncate">{reminder.message}</p>
+                  </div>
                 </div>
-                <p className="text-[#2E2E2E]">{reminder.message}</p>
+                {handler && (
+                  <Button
+                    onClick={handler}
+                    disabled={isResolving}
+                    size="sm"
+                    className="bg-[#0F172A] hover:bg-[#1E293B] text-white text-xs flex-shrink-0"
+                    data-testid={`resolve-reminder-${index}`}
+                  >
+                    <CheckCircle size={14} className="mr-1" />
+                    {isResolving ? 'Saving...' : 'Mark Paid'}
+                  </Button>
+                )}
               </div>
-            </div>
-          </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
