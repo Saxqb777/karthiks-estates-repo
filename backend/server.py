@@ -382,8 +382,11 @@ async def get_vacancy_stats():
     return results
 
 @api_router.get("/analytics/monthly-flow")
-async def get_monthly_flow(months: int = 12):
-    """Return monthly rent collected and expenses for the last N months."""
+async def get_monthly_flow(months: int = 12, fy: Optional[int] = None):
+    """Return monthly rent collected and expenses.
+    - If `fy` is provided, returns 12 months of that Indian Financial Year (Apr–Mar).
+      Example: fy=2024 returns Apr 2024 → Mar 2025.
+    - Else returns last N months (default 12)."""
     today = now_ist()
     result = []
     
@@ -392,17 +395,23 @@ async def get_monthly_flow(months: int = 12):
     utility_payments = await db.utility_payments.find({}, {"_id": 0}).to_list(10000)
     property_taxes = await db.property_taxes.find({}, {"_id": 0}).to_list(10000)
     
-    # Build last N months
-    cursor_year = today.year
-    cursor_month = today.month
     month_list = []
-    for _ in range(months):
-        month_list.append((cursor_month, cursor_year))
-        cursor_month -= 1
-        if cursor_month < 1:
-            cursor_month = 12
-            cursor_year -= 1
-    month_list.reverse()
+    if fy is not None:
+        # Indian FY: April of `fy` year through March of `fy+1` year
+        for offset in range(12):
+            m = ((4 - 1 + offset) % 12) + 1
+            y = fy + ((4 - 1 + offset) // 12)
+            month_list.append((m, y))
+    else:
+        cursor_year = today.year
+        cursor_month = today.month
+        for _ in range(months):
+            month_list.append((cursor_month, cursor_year))
+            cursor_month -= 1
+            if cursor_month < 1:
+                cursor_month = 12
+                cursor_year -= 1
+        month_list.reverse()
     
     for (m, y) in month_list:
         rent_total = sum(p.get('amount', 0) for p in rent_payments if p.get('month') == m and p.get('year') == y)

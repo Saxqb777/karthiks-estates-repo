@@ -76,21 +76,52 @@ export function PropertyGrowthChart() {
   );
 }
 
+// Helper: Indian Financial Year (April-March)
+const getCurrentFY = () => {
+  const now = new Date();
+  return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+};
+const FY_OPTIONS = [2024, 2025, 2026].filter(y => y <= getCurrentFY());
+
+const FYTabs = ({ value, onChange, testIdPrefix }) => (
+  <div className="flex items-center gap-1 mb-3" data-testid={`${testIdPrefix}-fy-tabs`}>
+    {FY_OPTIONS.map((y) => (
+      <button
+        key={y}
+        onClick={() => onChange(y)}
+        className={`px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] font-semibold rounded-sm transition ${
+          value === y
+            ? 'bg-[#0F172A] text-white'
+            : 'bg-transparent text-[#64748B] hover:text-[#0F172A] border border-[#E5E2DA]'
+        }`}
+        data-testid={`${testIdPrefix}-fy-${y}`}
+      >
+        FY {y}–{String(y + 1).slice(2)}
+      </button>
+    ))}
+  </div>
+);
+
 export function MonthlyFlowChart() {
   const [data, setData] = useState([]);
+  const [fy, setFy] = useState(getCurrentFY());
 
   useEffect(() => {
-    axios.get(`${API}/analytics/monthly-flow?months=12`)
+    axios.get(`${API}/analytics/monthly-flow?fy=${fy}`)
       .then(r => setData(r.data))
       .catch(e => console.error('Monthly flow error:', e));
-  }, []);
+  }, [fy]);
+
+  const totalRent = data.reduce((s, d) => s + (d.rent_collected || 0), 0);
+  const totalExp = data.reduce((s, d) => s + (d.expenses || 0), 0);
 
   return (
     <ChartCard
       title="Monthly Income vs Expenses"
-      subtitle="Last 12 months of cash flow activity"
+      subtitle={`FY ${fy}–${String(fy + 1).slice(2)} (Apr ${String(fy).slice(2)} – Mar ${String(fy + 1).slice(2)}) · Rent ${formatINR(totalRent)} · Expenses ${formatINR(totalExp)}`}
       testId="chart-monthly-flow"
     >
+      <FYTabs value={fy} onChange={setFy} testIdPrefix="monthly-flow" />
       <ResponsiveContainer width="100%" height={280}>
         <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#E5E2DA" />
@@ -108,9 +139,10 @@ export function MonthlyFlowChart() {
 
 export function CashFlowChart() {
   const [data, setData] = useState([]);
+  const [fy, setFy] = useState(getCurrentFY());
 
   useEffect(() => {
-    axios.get(`${API}/analytics/monthly-flow?months=12`)
+    axios.get(`${API}/analytics/monthly-flow?fy=${fy}`)
       .then(r => {
         let cum = 0;
         const transformed = r.data.map(d => {
@@ -120,14 +152,17 @@ export function CashFlowChart() {
         setData(transformed);
       })
       .catch(e => console.error('Cashflow error:', e));
-  }, []);
+  }, [fy]);
+
+  const fyNet = data.length > 0 ? data[data.length - 1].cumulative : 0;
 
   return (
     <ChartCard
       title="Cumulative Net Profit"
-      subtitle="Running cash flow over the last 12 months"
+      subtitle={`FY ${fy}–${String(fy + 1).slice(2)} running net: ${formatINR(fyNet)}`}
       testId="chart-cash-flow"
     >
+      <FYTabs value={fy} onChange={setFy} testIdPrefix="cash-flow" />
       <ResponsiveContainer width="100%" height={280}>
         <AreaChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
           <defs>
