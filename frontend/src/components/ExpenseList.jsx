@@ -89,11 +89,7 @@ export default function ExpenseList({ expenses, properties, onRefresh }) {
                 {new Date(expense.date).toLocaleDateString('en-IN')}
               </td>
               <td className="py-4 px-4 text-[#2E2E2E]">
-                {getPropertyName(expense.property_id) || (
-                  <span className="inline-block px-2 py-1 text-[10px] uppercase tracking-wider font-bold bg-[#B89D5F]/15 text-[#8E7846] rounded">
-                    Both Properties
-                  </span>
-                )}
+                {getPropertyName(expense.property_id) || 'Both Properties'}
               </td>
               <td className="py-4 px-4">
                 <span
