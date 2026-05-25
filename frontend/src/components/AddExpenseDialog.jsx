@@ -94,10 +94,7 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
                 <SelectContent>
                   <SelectItem value="maintenance">Maintenance</SelectItem>
                   <SelectItem value="repairs">Repairs</SelectItem>
-                  <SelectItem value="insurance">Insurance</SelectItem>
-                  <SelectItem value="software">Software / App</SelectItem>
-                  <SelectItem value="professional">Professional Services (Legal/Accounting)</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="professional">Professional Services</SelectItem>
                 </SelectContent>
               </Select>
             </div>

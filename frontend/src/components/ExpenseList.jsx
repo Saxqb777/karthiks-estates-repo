@@ -35,12 +35,18 @@ export default function ExpenseList({ expenses, properties, onRefresh }) {
     const colors = {
       maintenance: '#7BA38A',
       repairs: '#D96C4E',
-      insurance: '#2C4C3B',
-      software: '#1D4ED8',
-      professional: '#7C3AED',
-      other: '#7D7D7D'
+      professional: '#7C3AED'
     };
-    return colors[category] || colors.other;
+    return colors[category] || '#7D7D7D';
+  };
+
+  const getCategoryLabel = (category) => {
+    const labels = {
+      maintenance: 'Maintenance',
+      repairs: 'Repairs',
+      professional: 'Professional Services'
+    };
+    return labels[category] || category;
   };
 
   if (expenses.length === 0) {
@@ -97,7 +103,7 @@ export default function ExpenseList({ expenses, properties, onRefresh }) {
                     color: getCategoryColor(expense.category)
                   }}
                 >
-                  {expense.category}
+                  {getCategoryLabel(expense.category)}
                 </span>
               </td>
               <td className="py-4 px-4 text-[#7D7D7D]">

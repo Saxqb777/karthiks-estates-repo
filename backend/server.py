@@ -158,7 +158,7 @@ class Expense(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     property_id: Optional[str] = ""  # Empty string = portfolio-wide expense
-    category: str  # "maintenance", "repairs", "insurance", "software", "professional", "other"
+    category: str  # "maintenance", "repairs", "professional"
     amount: float
     date: str
     description: str
