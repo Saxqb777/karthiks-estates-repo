@@ -230,7 +230,7 @@ export function VacancyCard() {
               <div className="flex items-center justify-between mb-2">
                 <div>
                   <p className="text-sm font-semibold text-[#0F172A]">{p.property_name}</p>
-                  <p className="text-[10px] uppercase tracking-[0.18em] font-semibold text-[#64748B] mt-0.5">
+                  <p className={`text-[10px] uppercase tracking-[0.18em] font-semibold mt-0.5 ${p.is_currently_occupied ? 'text-[#047857]' : 'text-[#B91C1C]'}`}>
                     {p.is_currently_occupied ? 'Currently Occupied' : 'Currently Vacant'}
                   </p>
                 </div>
