@@ -6,7 +6,6 @@ import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Textarea } from './ui/textarea';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -30,7 +29,6 @@ export default function EstateLayoutCard() {
     setForm({
       combined_plot_frontage: settings?.combined_plot_frontage?.toString() || '',
       combined_plot_depth: settings?.combined_plot_depth?.toString() || '',
-      notes: settings?.notes || '',
       estate_layout_image_url: settings?.estate_layout_image_url || ''
     });
     setShowEdit(true);
@@ -55,7 +53,6 @@ export default function EstateLayoutCard() {
       await axios.patch(`${API}/portfolio-settings`, {
         combined_plot_frontage: form.combined_plot_frontage ? parseFloat(form.combined_plot_frontage) : null,
         combined_plot_depth: form.combined_plot_depth ? parseFloat(form.combined_plot_depth) : null,
-        notes: form.notes || null,
         estate_layout_image_url: form.estate_layout_image_url || null
       });
       toast.success('Estate details updated');
@@ -72,7 +69,7 @@ export default function EstateLayoutCard() {
   if (!settings) return null;
 
   const totalPlotSqft = (settings.combined_plot_frontage || 0) * (settings.combined_plot_depth || 0);
-  const hasAnyData = totalPlotSqft > 0 || settings.estate_layout_image_url || settings.notes;
+  const hasAnyData = totalPlotSqft > 0 || settings.estate_layout_image_url;
 
   return (
     <>
@@ -134,12 +131,6 @@ export default function EstateLayoutCard() {
             )}
 
             <div className="md:border-l md:border-[#E5E2DA] md:pl-6 space-y-3">
-              {settings.notes && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-1">Notes</p>
-                  <p className="text-sm text-[#0F172A] leading-relaxed">{settings.notes}</p>
-                </div>
-              )}
               {settings.estate_layout_image_url && (
                 <Button
                   size="sm"
@@ -212,16 +203,6 @@ export default function EstateLayoutCard() {
                     data-testid="estate-depth-input"
                   />
                 </div>
-              </div>
-              <div>
-                <Label htmlFor="notes" className="text-[#0F172A]">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  className="border-[#E5E2DA]"
-                  data-testid="estate-notes-input"
-                />
               </div>
               <div>
                 <Label htmlFor="layout" className="text-[#0F172A]">Layout / Site Plan Image</Label>
