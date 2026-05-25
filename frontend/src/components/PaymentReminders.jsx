@@ -149,18 +149,18 @@ export default function PaymentReminders({ reminders, onRefresh }) {
             return (
               <div
                 key={reminderKey}
-                className={`p-4 border rounded-md flex items-center justify-between gap-4 ${getPriorityColor(reminder.priority)}`}
+                className={`p-4 border rounded-md flex items-start justify-between gap-4 ${getPriorityColor(reminder.priority)}`}
                 data-testid={`reminder-${index}`}
               >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  {reminder.type === 'rent' && <CurrencyInr size={18} className="text-[#B91C1C] flex-shrink-0" />}
-                  {reminder.type === 'utility' && <Bell size={18} className="text-[#B89D5F] flex-shrink-0" />}
-                  {reminder.type === 'tax' && <Bell size={18} className="text-[#B91C1C] flex-shrink-0" />}
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  {reminder.type === 'rent' && <CurrencyInr size={18} className="text-[#B91C1C] flex-shrink-0 mt-0.5" />}
+                  {reminder.type === 'utility' && <Bell size={18} className="text-[#B89D5F] flex-shrink-0 mt-0.5" />}
+                  {reminder.type === 'tax' && <Bell size={18} className="text-[#B91C1C] flex-shrink-0 mt-0.5" />}
                   <div className="flex-1 min-w-0">
                     <span className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] block mb-0.5">
                       {reminder.type} · {reminder.priority} priority
                     </span>
-                    <p className="text-sm text-[#0F172A] truncate">{reminder.message}</p>
+                    <p className="text-sm text-[#0F172A] break-words leading-snug">{reminder.message}</p>
                   </div>
                 </div>
                 {handler && (

@@ -114,26 +114,21 @@ export default function Dashboard() {
       <header className="bg-white border-b border-[#E5E2DA]">
         <div className="max-w-[1400px] mx-auto px-8 py-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-[#0F172A] rounded-md flex items-center justify-center">
-                <Buildings size={20} className="text-[#B89D5F]" weight="fill" />
-              </div>
-              <div>
-                <h1 className="serif-display text-2xl text-[#0F172A]" data-testid="dashboard-title">
-                  Pattukottai Estates
-                </h1>
-                <p className="text-[10px] uppercase tracking-[0.28em] font-semibold text-[#64748B] mt-0.5">
-                  Property Portfolio · Tamil Nadu
-                </p>
-              </div>
+            <div>
+              <h1 className="serif-display text-2xl text-[#0F172A]" data-testid="dashboard-title">
+                Pattukottai Estates
+              </h1>
+              <p className="text-[10px] uppercase tracking-[0.28em] font-semibold text-[#64748B] mt-0.5">
+                Property Portfolio · Tamil Nadu
+              </p>
             </div>
             <div className="hidden md:flex items-center gap-6 text-xs">
-              <div className="text-right">
+              <div className="text-center">
                 <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#64748B]">Properties Owned</p>
                 <p className="text-base font-semibold text-[#0F172A] tabular-nums">{stats?.properties_count || 0}</p>
               </div>
               <div className="w-px h-8 bg-[#E5E2DA]"></div>
-              <div className="text-right">
+              <div className="text-center">
                 <p className="text-[10px] uppercase tracking-[0.2em] font-semibold text-[#64748B]">Active Tenants</p>
                 <p className="text-base font-semibold text-[#0F172A] tabular-nums">{stats?.tenants_count || 0}</p>
               </div>
@@ -155,14 +150,12 @@ export default function Dashboard() {
               icon={<House size={18} />}
               label="Total Property Value"
               value={`₹${(stats?.total_property_value || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-              trend={`Current market estimate`}
               testId="stat-property-value"
             />
             <StatsCard
               icon={<TrendUp size={18} />}
               label="Capital Appreciation"
               value={`₹${(stats?.total_appreciation || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`}
-              trend="Since purchase"
               color="#047857"
               accent
               testId="stat-appreciation"
@@ -171,14 +164,12 @@ export default function Dashboard() {
               icon={<CurrencyInr size={18} />}
               label="Rent Collected"
               value={`₹${(stats?.total_rental_income || 0).toLocaleString('en-IN')}`}
-              trend="All-time recorded"
               testId="stat-rental-income"
             />
             <StatsCard
               icon={<Receipt size={18} />}
               label="Total Expenses"
               value={`₹${(stats?.total_expenses || 0).toLocaleString('en-IN')}`}
-              trend="All operating costs"
               color="#B91C1C"
               accent
               testId="stat-expenses"
@@ -187,7 +178,6 @@ export default function Dashboard() {
               icon={<ChartLine size={18} />}
               label="Net Profit"
               value={`₹${(stats?.net_profit || 0).toLocaleString('en-IN')}`}
-              trend={(stats?.net_profit || 0) >= 0 ? 'Positive cash flow' : 'Operating at loss'}
               color={(stats?.net_profit || 0) >= 0 ? '#047857' : '#B91C1C'}
               accent
               testId="stat-net-profit"
@@ -196,7 +186,6 @@ export default function Dashboard() {
               icon={<Users size={18} />}
               label="Security Deposits"
               value={`₹${(stats?.total_security_deposits || 0).toLocaleString('en-IN')}`}
-              trend="Currently held · refundable"
               testId="stat-security-deposits"
             />
           </div>
