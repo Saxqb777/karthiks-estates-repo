@@ -61,7 +61,7 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
         <form onSubmit={handleSubmit}>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="property" className="text-[#2E2E2E]">Property / Scope *</Label>
+              <Label htmlFor="property" className="text-[#2E2E2E]">Property *</Label>
               <Select
                 value={formData.property_id}
                 onValueChange={(value) => setFormData({ ...formData, property_id: value })}
@@ -72,7 +72,7 @@ export default function AddExpenseDialog({ open, onOpenChange, properties, onSuc
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="portfolio">
-                    General Business Expense (Not tied to a property)
+                    Both Properties
                   </SelectItem>
                   {properties.map((property) => (
                     <SelectItem key={property.id} value={property.id}>
