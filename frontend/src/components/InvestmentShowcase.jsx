@@ -16,6 +16,7 @@ const formatLakhs = (v) => {
 export default function InvestmentShowcase() {
   const [properties, setProperties] = useState([]);
   const [rentalIncome, setRentalIncome] = useState(0);
+  const [portfolioSqft, setPortfolioSqft] = useState(0);
 
   useEffect(() => {
     axios.get(`${API}/properties`)
@@ -24,6 +25,12 @@ export default function InvestmentShowcase() {
     axios.get(`${API}/dashboard/stats`)
       .then(r => setRentalIncome(r.data?.total_rental_income || 0))
       .catch(e => console.error('Stats load error:', e));
+    axios.get(`${API}/portfolio-settings`)
+      .then(r => {
+        const s = r.data || {};
+        setPortfolioSqft((s.combined_plot_frontage || 0) * (s.combined_plot_depth || 0));
+      })
+      .catch(e => console.error('Portfolio settings load:', e));
   }, []);
 
   const withOffers = properties.filter(p => (p.highest_offer || 0) > 0);
@@ -33,13 +40,12 @@ export default function InvestmentShowcase() {
 
   const totalInvested = properties.reduce((s, p) => s + (p.purchase_price || 0), 0);
   const totalBestOffer = properties.reduce((s, p) => s + (p.highest_offer || 0), 0);
-  const totalBuiltUp = properties.reduce((s, p) => s + (p.built_up_area || 0), 0);
   const totalGain = totalBestOffer - totalInvested;
   const totalReturn = totalGain + rentalIncome;
   const multiplier = totalInvested > 0 ? (totalBestOffer + rentalIncome) / totalInvested : 0;
   const roiPct = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
-  const boughtPerSqft = totalBuiltUp > 0 ? totalInvested / totalBuiltUp : 0;
-  const offeredPerSqft = totalBuiltUp > 0 ? totalBestOffer / totalBuiltUp : 0;
+  const boughtPerSqft = portfolioSqft > 0 ? totalInvested / portfolioSqft : 0;
+  const offeredPerSqft = portfolioSqft > 0 ? totalBestOffer / portfolioSqft : 0;
 
   // Compute average years held
   const yearsHeldList = properties
@@ -192,26 +198,31 @@ export default function InvestmentShowcase() {
           </p>
         </div>
 
-        {/* Per-sqft pricing strip */}
-        {totalBuiltUp > 0 && (
-          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-3" data-testid="showcase-sqft-strip">
-            <div className="bg-white/[0.04] border border-white/10 rounded-md px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#94A3B8] mb-1">Bought at</p>
-              <p className="text-xl font-semibold tabular-nums text-white">
-                ₹{Math.round(boughtPerSqft).toLocaleString('en-IN')}<span className="text-xs text-[#64748B] font-medium">/sqft</span>
-              </p>
-            </div>
-            <div className="bg-white/[0.04] border border-[#B89D5F]/30 rounded-md px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#B89D5F] mb-1">Currently offered at</p>
-              <p className="text-xl font-semibold tabular-nums text-[#B89D5F]">
-                ₹{Math.round(offeredPerSqft).toLocaleString('en-IN')}<span className="text-xs text-[#B89D5F]/60 font-medium">/sqft</span>
-              </p>
-            </div>
-            <div className="bg-white/[0.04] border border-[#10B981]/30 rounded-md px-4 py-3">
-              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#10B981] mb-1">Per-sqft appreciation</p>
-              <p className="text-xl font-semibold tabular-nums text-[#10B981]">
-                +₹{Math.round(offeredPerSqft - boughtPerSqft).toLocaleString('en-IN')}<span className="text-xs text-[#10B981]/60 font-medium">/sqft</span>
-              </p>
+        {/* Per-sqft pricing strip (uses verified portfolio plot area) */}
+        {portfolioSqft > 0 && (
+          <div className="mb-8" data-testid="showcase-sqft-strip">
+            <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#94A3B8] mb-3">
+              Per-sqft Performance · {Math.round(portfolioSqft).toLocaleString('en-IN')} sqft total plot
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="bg-white/[0.04] border border-white/10 rounded-md px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#94A3B8] mb-1">Bought at</p>
+                <p className="text-xl font-semibold tabular-nums text-white">
+                  ₹{Math.round(boughtPerSqft).toLocaleString('en-IN')}<span className="text-xs text-[#64748B] font-medium">/sqft</span>
+                </p>
+              </div>
+              <div className="bg-white/[0.04] border border-[#B89D5F]/30 rounded-md px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#B89D5F] mb-1">Currently offered at</p>
+                <p className="text-xl font-semibold tabular-nums text-[#B89D5F]">
+                  ₹{Math.round(offeredPerSqft).toLocaleString('en-IN')}<span className="text-xs text-[#B89D5F]/60 font-medium">/sqft</span>
+                </p>
+              </div>
+              <div className="bg-white/[0.04] border border-[#10B981]/30 rounded-md px-4 py-3">
+                <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#10B981] mb-1">Per-sqft appreciation</p>
+                <p className="text-xl font-semibold tabular-nums text-[#10B981]">
+                  +₹{Math.round(offeredPerSqft - boughtPerSqft).toLocaleString('en-IN')}<span className="text-xs text-[#10B981]/60 font-medium">/sqft</span>
+                </p>
+              </div>
             </div>
           </div>
         )}

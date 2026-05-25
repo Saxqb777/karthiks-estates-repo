@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { MapPin, Calendar, TrendUp, PencilSimple, Trash, House, Ruler } from '@phosphor-icons/react';
+import { MapPin, Calendar, TrendUp, PencilSimple, Trash, House } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 import ConfirmDialog from './ConfirmDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
-
-const fmtSqft = (v) => v ? `${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 })} sqft` : '—';
 
 export default function PropertyCard({ property, onRefresh, onEdit }) {
   const [showDelete, setShowDelete] = useState(false);
@@ -83,12 +81,6 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
             <Calendar size={14} className="mr-1.5" />
             Purchased {new Date(property.purchase_date).toLocaleDateString('en-IN')}
           </div>
-          {property.built_up_area > 0 && (
-            <div className="flex items-center text-xs text-[#64748B] pt-1">
-              <Ruler size={14} className="mr-1.5" />Built-up {fmtSqft(property.built_up_area)}
-              {property.carpet_area > 0 && <span className="ml-2 text-[#94A3B8]">· Carpet {fmtSqft(property.carpet_area)}</span>}
-            </div>
-          )}
         </div>
 
         <div className="border-t border-[#E5E2DA] pt-4 space-y-3">
@@ -119,24 +111,6 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
               {property.appreciation_rate}%
             </span>
           </div>
-          {property.built_up_area > 0 && (
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-dashed border-[#E5E2DA]">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-1">Bought at</p>
-                <p className="text-sm font-semibold text-[#0F172A] tabular-nums">
-                  ₹{Math.round(property.purchase_price / property.built_up_area).toLocaleString('en-IN')}<span className="text-[10px] text-[#94A3B8] font-medium">/sqft</span>
-                </p>
-              </div>
-              {property.highest_offer > 0 && (
-                <div>
-                  <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B89D5F] mb-1">Offered at</p>
-                  <p className="text-sm font-semibold text-[#B89D5F] tabular-nums">
-                    ₹{Math.round(property.highest_offer / property.built_up_area).toLocaleString('en-IN')}<span className="text-[10px] text-[#B89D5F]/60 font-medium">/sqft</span>
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
           {property.highest_offer > 0 && (
             <div className="mt-2 pt-3 border-t border-dashed border-[#E5E2DA]">
               <div className="flex justify-between items-baseline mb-1">
