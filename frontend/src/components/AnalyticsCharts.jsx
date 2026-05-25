@@ -197,6 +197,7 @@ export function ExpenseBreakdownChart() {
 
 export function VacancyCard() {
   const [data, setData] = useState([]);
+  const [expanded, setExpanded] = useState({});
 
   useEffect(() => {
     axios.get(`${API}/analytics/vacancy`)
@@ -207,6 +208,12 @@ export function VacancyCard() {
   const totalVacantDays = data.reduce((s, p) => s + p.vacant_days, 0);
   const totalUnrealizedLoss = data.reduce((s, p) => s + p.unrealized_loss, 0);
 
+  const fmtDate = (iso) => {
+    try {
+      return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch { return iso; }
+  };
+
   return (
     <ChartCard
       title="Vacancy & Unrealized Loss"
@@ -216,6 +223,8 @@ export function VacancyCard() {
       <div className="space-y-4">
         {data.map((p) => {
           const ratio = p.total_owned_days > 0 ? (p.occupied_days / p.total_owned_days) * 100 : 0;
+          const isOpen = expanded[p.property_id];
+          const hasPeriods = Array.isArray(p.vacancy_periods) && p.vacancy_periods.length > 0;
           return (
             <div key={p.property_id} className="border border-[#E5E2DA] rounded-md p-4" data-testid={`vacancy-${p.property_id}`}>
               <div className="flex items-center justify-between mb-2">
@@ -236,7 +245,7 @@ export function VacancyCard() {
                   style={{ width: `${Math.min(ratio, 100)}%` }}
                 />
               </div>
-              <div className="grid grid-cols-4 gap-2 text-xs">
+              <div className="grid grid-cols-4 gap-2 text-xs mb-3">
                 <div>
                   <p className="text-[10px] uppercase tracking-wider text-[#64748B]">Owned</p>
                   <p className="font-semibold text-[#0F172A] tabular-nums">{p.total_owned_days}d</p>
@@ -254,6 +263,43 @@ export function VacancyCard() {
                   <p className="font-semibold text-[#B91C1C] tabular-nums">{formatINR(p.unrealized_loss)}</p>
                 </div>
               </div>
+              {hasPeriods && (
+                <>
+                  <button
+                    onClick={() => setExpanded({ ...expanded, [p.property_id]: !isOpen })}
+                    className="text-[11px] uppercase tracking-[0.18em] font-semibold text-[#B89D5F] hover:text-[#8E7846] transition"
+                    data-testid={`vacancy-toggle-${p.property_id}`}
+                  >
+                    {isOpen ? '− Hide vacant periods' : `+ Show ${p.vacancy_periods.length} vacant period${p.vacancy_periods.length > 1 ? 's' : ''}`}
+                  </button>
+                  {isOpen && (
+                    <div className="mt-3 border-t border-[#E5E2DA] pt-3 space-y-2">
+                      {p.vacancy_periods.map((v, idx) => (
+                        <div key={idx} className="bg-[#FEE2E2]/30 border border-[#FEE2E2] rounded p-3 text-xs" data-testid={`vacancy-period-${p.property_id}-${idx}`}>
+                          <div className="flex items-center justify-between mb-1.5">
+                            <p className="font-semibold text-[#0F172A]">
+                              {fmtDate(v.from)} <span className="text-[#64748B] mx-1">→</span> {fmtDate(v.to)}
+                            </p>
+                            <p className="font-semibold text-[#B91C1C] tabular-nums">{formatINR(v.loss)}</p>
+                          </div>
+                          <p className="text-[11px] text-[#64748B] leading-relaxed">
+                            <span className="tabular-nums">{v.days} days</span>
+                            {' × '}
+                            <span className="tabular-nums">{formatINR(v.daily_rent)}/day</span>
+                            {' '}
+                            <span className="text-[#94A3B8]">
+                              (₹{(v.expected_monthly_rent || 0).toLocaleString('en-IN')}/mo ÷ 30, based on {v.basis})
+                            </span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+              {!hasPeriods && p.vacant_days === 0 && (
+                <p className="text-[11px] text-[#64748B] italic">No vacancy gaps recorded — property has been fully occupied since purchase.</p>
+              )}
             </div>
           );
         })}

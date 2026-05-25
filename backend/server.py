@@ -252,74 +252,117 @@ async def get_property(property_id: str):
 
 @api_router.get("/analytics/vacancy")
 async def get_vacancy_stats():
-    """Calculate vacancy days and unrealized rent loss per property since purchase."""
+    """Calculate vacancy days and unrealized rent loss per property since purchase.
+    Also returns the exact vacant date intervals with rent rate used for loss estimation."""
     properties = await db.properties.find({}, {"_id": 0}).to_list(1000)
     tenants = await db.tenants.find({}, {"_id": 0}).to_list(1000)
     today = now_ist()
     
+    def parse_ist(value):
+        try:
+            dt = datetime.fromisoformat(value)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=IST)
+            return dt
+        except (ValueError, TypeError):
+            return None
+    
     results = []
     for prop in properties:
-        try:
-            purchase_date = datetime.fromisoformat(prop['purchase_date'])
-            if purchase_date.tzinfo is None:
-                purchase_date = purchase_date.replace(tzinfo=IST)
-        except (ValueError, KeyError):
+        purchase_date = parse_ist(prop.get('purchase_date'))
+        if not purchase_date:
             continue
         
         total_owned_days = max(0, (today - purchase_date).days)
         
-        # Collect occupancy intervals for this property
+        # Collect tenant occupancy intervals (start, end, monthly_rent)
         prop_tenants = [t for t in tenants if t.get('property_id') == prop['id']]
         intervals = []
         for t in prop_tenants:
-            try:
-                start = datetime.fromisoformat(t['lease_start'])
-                if start.tzinfo is None:
-                    start = start.replace(tzinfo=IST)
-            except (ValueError, KeyError):
+            start = parse_ist(t.get('lease_start'))
+            if not start:
                 continue
-            
-            # End: lease_end_date if ended, else today
             if t.get('lease_status') == 'ended' and t.get('lease_end_date'):
-                try:
-                    end = datetime.fromisoformat(t['lease_end_date'])
-                    if end.tzinfo is None:
-                        end = end.replace(tzinfo=IST)
-                except (ValueError, KeyError):
-                    end = today
+                end = parse_ist(t['lease_end_date']) or today
             else:
                 end = today
-            
-            # Clamp to purchase_date and today
             start = max(start, purchase_date)
             end = min(end, today)
             if end > start:
-                intervals.append((start, end, t.get('monthly_rent', 0)))
+                intervals.append({
+                    "start": start,
+                    "end": end,
+                    "monthly_rent": t.get('monthly_rent', 0),
+                    "tenant_name": t.get('name', 'Unknown')
+                })
         
-        # Sort intervals and merge overlapping ones for occupied days
-        intervals.sort(key=lambda x: x[0])
-        occupied_days = 0
-        last_end = purchase_date
-        avg_rent_sum = 0
-        avg_rent_count = 0
-        for start, end, rent in intervals:
-            effective_start = max(start, last_end)
-            if end > effective_start:
-                occupied_days += (end - effective_start).days
-                last_end = end
-                avg_rent_sum += rent
-                avg_rent_count += 1
+        intervals.sort(key=lambda x: x['start'])
         
-        vacant_days = max(0, total_owned_days - occupied_days)
-        avg_monthly_rent = (avg_rent_sum / avg_rent_count) if avg_rent_count > 0 else 0
-        daily_rent = avg_monthly_rent / 30.0 if avg_monthly_rent > 0 else 0
-        unrealized_loss = vacant_days * daily_rent
+        # Merge overlapping intervals to compute occupied_days
+        merged = []
+        for iv in intervals:
+            if merged and iv['start'] <= merged[-1]['end']:
+                merged[-1]['end'] = max(merged[-1]['end'], iv['end'])
+            else:
+                merged.append({"start": iv['start'], "end": iv['end']})
+        occupied_days = sum((m['end'] - m['start']).days for m in merged)
         
-        # Currently occupied?
+        # Compute vacant periods = [purchase_date, today] minus merged intervals
+        vacancy_periods = []
+        cursor = purchase_date
+        # Helper to pick expected monthly rent for a gap, ending at the tenant who comes after the gap (best estimate)
+        def find_rent_for_gap(gap_start, gap_end):
+            # Prefer next tenant after gap (the one we "could have placed")
+            for iv in intervals:
+                if iv['start'] >= gap_end:
+                    return iv['monthly_rent'], f"next tenant {iv['tenant_name']}"
+            # Else, the most recent tenant before the gap
+            previous = [iv for iv in intervals if iv['end'] <= gap_start]
+            if previous:
+                last = previous[-1]
+                return last['monthly_rent'], f"last tenant {last['tenant_name']}"
+            return 0, "no reference tenant"
+        
+        for m in merged:
+            if m['start'] > cursor:
+                gap_start, gap_end = cursor, m['start']
+                days = (gap_end - gap_start).days
+                if days > 0:
+                    rent, basis = find_rent_for_gap(gap_start, gap_end)
+                    daily = rent / 30.0
+                    vacancy_periods.append({
+                        "from": gap_start.date().isoformat(),
+                        "to": gap_end.date().isoformat(),
+                        "days": days,
+                        "expected_monthly_rent": rent,
+                        "daily_rent": round(daily, 2),
+                        "loss": round(days * daily, 2),
+                        "basis": basis
+                    })
+            cursor = max(cursor, m['end'])
+        # Trailing vacancy until today
+        if cursor < today:
+            gap_start, gap_end = cursor, today
+            days = (gap_end - gap_start).days
+            if days > 0:
+                rent, basis = find_rent_for_gap(gap_start, gap_end)
+                daily = rent / 30.0
+                vacancy_periods.append({
+                    "from": gap_start.date().isoformat(),
+                    "to": gap_end.date().isoformat(),
+                    "days": days,
+                    "expected_monthly_rent": rent,
+                    "daily_rent": round(daily, 2),
+                    "loss": round(days * daily, 2),
+                    "basis": basis
+                })
+        
+        vacant_days = sum(v['days'] for v in vacancy_periods)
+        unrealized_loss = sum(v['loss'] for v in vacancy_periods)
+        avg_monthly_rent = (sum(iv['monthly_rent'] for iv in intervals) / len(intervals)) if intervals else 0
+        
         is_currently_occupied = any(
-            t.get('lease_status') != 'ended' and
-            datetime.fromisoformat(t['lease_start']).replace(tzinfo=IST if datetime.fromisoformat(t['lease_start']).tzinfo is None else None) <= today
-            for t in prop_tenants if t.get('lease_start')
+            iv['end'] >= today for iv in intervals
         )
         
         results.append({
@@ -330,9 +373,10 @@ async def get_vacancy_stats():
             "occupied_days": occupied_days,
             "vacant_days": vacant_days,
             "occupancy_rate": round((occupied_days / total_owned_days * 100), 1) if total_owned_days > 0 else 0,
-            "avg_monthly_rent": avg_monthly_rent,
+            "avg_monthly_rent": round(avg_monthly_rent, 2),
             "unrealized_loss": round(unrealized_loss, 2),
-            "is_currently_occupied": is_currently_occupied
+            "is_currently_occupied": is_currently_occupied,
+            "vacancy_periods": vacancy_periods
         })
     
     return results
