@@ -103,29 +103,19 @@ export default function EstateLayoutCard() {
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-[auto_1fr] gap-6 items-start">
-            {/* Mini-map */}
             {settings.combined_plot_frontage > 0 && settings.combined_plot_depth > 0 && (
-              <div className="flex items-center gap-4">
-                <svg width="64" height="96" viewBox="0 0 32 48" className="flex-shrink-0">
-                  <rect x="1" y="1" width="30" height="46" fill="#F4F4EF" stroke="#B89D5F" strokeDasharray="2 2" strokeWidth="0.8" />
-                  <rect x="8" y="6" width="18" height="14" fill="#0F172A" opacity="0.85" />
-                  <text x="17" y="14" textAnchor="middle" fill="#B89D5F" fontSize="3.5" fontWeight="bold">UNIT 1</text>
-                  <rect x="8" y="28" width="18" height="14" fill="#0F172A" opacity="0.85" />
-                  <text x="17" y="36" textAnchor="middle" fill="#B89D5F" fontSize="3.5" fontWeight="bold">UNIT 2</text>
-                </svg>
-                <div className="space-y-2">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Plot Dimensions</p>
-                    <p className="text-sm font-semibold text-[#0F172A] tabular-nums">
-                      {settings.combined_plot_frontage}′ × {settings.combined_plot_depth}′
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Total Plot Area</p>
-                    <p className="text-sm font-semibold text-[#B89D5F] tabular-nums">
-                      {Math.round(totalPlotSqft).toLocaleString('en-IN')} sqft
-                    </p>
-                  </div>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Plot Dimensions</p>
+                  <p className="text-sm font-semibold text-[#0F172A] tabular-nums">
+                    {settings.combined_plot_frontage}′ × {settings.combined_plot_depth}′
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B]">Total Plot Area</p>
+                  <p className="text-sm font-semibold text-[#B89D5F] tabular-nums">
+                    {Math.round(totalPlotSqft).toLocaleString('en-IN')} sqft
+                  </p>
                 </div>
               </div>
             )}
