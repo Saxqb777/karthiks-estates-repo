@@ -21,6 +21,7 @@ import RecordRentPaymentDialog from '../components/RecordRentPaymentDialog';
 import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
 import CloseLeaseDialog from '../components/CloseLeaseDialog';
 import InvestmentShowcase from '../components/InvestmentShowcase';
+import EstateLayoutCard from '../components/EstateLayoutCard';
 import {
   MonthlyFlowChart, CashFlowChart, ExpenseBreakdownChart, VacancyCard
 } from '../components/AnalyticsCharts';
@@ -239,6 +240,9 @@ export default function Dashboard() {
               <Plus size={14} className="mr-1" />
               Add Property
             </Button>
+          </div>
+          <div className="mb-4">
+            <EstateLayoutCard />
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {properties.map((property) => (

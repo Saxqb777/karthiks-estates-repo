@@ -19,10 +19,7 @@ const emptyForm = {
   highest_offer_date: '',
   highest_offer_notes: '',
   built_up_area: '',
-  carpet_area: '',
-  plot_frontage: '',
-  plot_depth: '',
-  layout_image_url: ''
+  carpet_area: ''
 };
 
 export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editProperty }) {
@@ -42,27 +39,12 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
         highest_offer_date: editProperty.highest_offer_date ? editProperty.highest_offer_date.split('T')[0] : '',
         highest_offer_notes: editProperty.highest_offer_notes || '',
         built_up_area: editProperty.built_up_area?.toString() || '',
-        carpet_area: editProperty.carpet_area?.toString() || '',
-        plot_frontage: editProperty.plot_frontage?.toString() || '',
-        plot_depth: editProperty.plot_depth?.toString() || '',
-        layout_image_url: editProperty.layout_image_url || ''
+        carpet_area: editProperty.carpet_area?.toString() || ''
       });
     } else {
       setFormData(emptyForm);
     }
   }, [editProperty, open]);
-
-  const handleLayoutUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error('Layout image must be under 2 MB');
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => setFormData((prev) => ({ ...prev, layout_image_url: reader.result }));
-    reader.readAsDataURL(file);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,9 +58,6 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
         highest_offer: parseFloat(formData.highest_offer) || 0,
         built_up_area: formData.built_up_area ? parseFloat(formData.built_up_area) : null,
         carpet_area: formData.carpet_area ? parseFloat(formData.carpet_area) : null,
-        plot_frontage: formData.plot_frontage ? parseFloat(formData.plot_frontage) : null,
-        plot_depth: formData.plot_depth ? parseFloat(formData.plot_depth) : null,
-        layout_image_url: formData.layout_image_url || null,
         image_url: editProperty?.image_url || ''
       };
 
@@ -176,7 +155,7 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
             </div>
 
             <div className="pt-2 border-t border-[#E5E2DA]">
-              <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-3">Plot & Layout Details (Optional)</p>
+              <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-3">Unit Size (Optional)</p>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="built_up_area" className="text-[#2E2E2E]">Built-up Area (sqft)</Label>
@@ -202,56 +181,6 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
                     data-testid="property-carpet-input"
                   />
                 </div>
-                <div>
-                  <Label htmlFor="plot_frontage" className="text-[#2E2E2E]">Plot Frontage (ft)</Label>
-                  <Input
-                    id="plot_frontage"
-                    type="number"
-                    step="0.01"
-                    value={formData.plot_frontage}
-                    onChange={(e) => setFormData({ ...formData, plot_frontage: e.target.value })}
-                    className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                    data-testid="property-frontage-input"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="plot_depth" className="text-[#2E2E2E]">Plot Depth (ft)</Label>
-                  <Input
-                    id="plot_depth"
-                    type="number"
-                    step="0.01"
-                    value={formData.plot_depth}
-                    onChange={(e) => setFormData({ ...formData, plot_depth: e.target.value })}
-                    className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                    data-testid="property-depth-input"
-                  />
-                </div>
-              </div>
-              <div className="mt-3">
-                <Label htmlFor="layout_image" className="text-[#2E2E2E]">Layout / Floor Plan Image</Label>
-                <Input
-                  id="layout_image"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLayoutUpload}
-                  className="border-[#E6E2D8] focus:border-[#2C4C3B] cursor-pointer file:mr-3 file:rounded file:border-0 file:bg-[#F4F4EF] file:px-3 file:py-1 file:text-xs file:text-[#0F172A]"
-                  data-testid="property-layout-upload"
-                />
-                {formData.layout_image_url && (
-                  <div className="mt-2 flex items-center gap-2">
-                    <img src={formData.layout_image_url} alt="Layout preview" className="h-20 border border-[#E5E2DA] rounded" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData({ ...formData, layout_image_url: '' })}
-                      className="border-[#E6E2D8] text-xs"
-                      data-testid="property-layout-clear-btn"
-                    >
-                      Remove
-                    </Button>
-                  </div>
-                )}
               </div>
             </div>
 

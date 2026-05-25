@@ -258,6 +258,24 @@ class CustomReminderUpdate(BaseModel):
     notes: Optional[str] = None
     is_done: Optional[bool] = None
 
+class PortfolioSettings(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    estate_name: Optional[str] = "Pattukottai Estates"
+    estate_tagline: Optional[str] = "Property Portfolio · Tamil Nadu"
+    combined_plot_frontage: Optional[float] = None  # feet
+    combined_plot_depth: Optional[float] = None     # feet
+    estate_layout_image_url: Optional[str] = None   # base64 data URL or URL
+    notes: Optional[str] = None
+    updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+class PortfolioSettingsUpdate(BaseModel):
+    estate_name: Optional[str] = None
+    estate_tagline: Optional[str] = None
+    combined_plot_frontage: Optional[float] = None
+    combined_plot_depth: Optional[float] = None
+    estate_layout_image_url: Optional[str] = None
+    notes: Optional[str] = None
+
 class DashboardStats(BaseModel):
     total_property_value: float
     total_appreciation: float
@@ -990,6 +1008,30 @@ async def delete_custom_reminder(reminder_id: str):
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Reminder not found")
     return {"message": "Reminder deleted"}
+
+# ============ PORTFOLIO / ESTATE SETTINGS ============
+
+PORTFOLIO_DOC_ID = "portfolio"
+
+@api_router.get("/portfolio-settings", response_model=PortfolioSettings)
+async def get_portfolio_settings():
+    doc = await db.portfolio_settings.find_one({"_id": PORTFOLIO_DOC_ID}, {"_id": 0})
+    if not doc:
+        # Return defaults without persisting
+        return PortfolioSettings()
+    return doc
+
+@api_router.patch("/portfolio-settings", response_model=PortfolioSettings)
+async def update_portfolio_settings(input: PortfolioSettingsUpdate):
+    update_data = {k: v for k, v in input.model_dump().items() if v is not None}
+    update_data["updated_at"] = datetime.now(timezone.utc).isoformat()
+    await db.portfolio_settings.update_one(
+        {"_id": PORTFOLIO_DOC_ID},
+        {"$set": update_data},
+        upsert=True
+    )
+    doc = await db.portfolio_settings.find_one({"_id": PORTFOLIO_DOC_ID}, {"_id": 0})
+    return doc
 
 # ============ PAYMENT REMINDERS ============
 
