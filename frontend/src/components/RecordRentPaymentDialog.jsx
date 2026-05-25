@@ -185,7 +185,7 @@ export default function RecordRentPaymentDialog({ open, onOpenChange, tenant, on
                 id="notes"
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                placeholder="e.g., paid via UPI, partial payment, etc."
+                placeholder=""
                 className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                 data-testid="payment-notes-input"
               />

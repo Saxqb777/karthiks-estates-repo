@@ -408,10 +408,9 @@ async def get_vacancy_stats():
     return results
 
 @api_router.get("/analytics/monthly-flow")
-async def get_monthly_flow(months: int = 12, fy: Optional[int] = None):
+async def get_monthly_flow(months: int = 12, year: Optional[int] = None):
     """Return monthly rent collected and expenses.
-    - If `fy` is provided, returns 12 months of that Indian Financial Year (Apr–Mar).
-      Example: fy=2024 returns Apr 2024 → Mar 2025.
+    - If `year` is provided, returns 12 months of that calendar year (Jan–Dec).
     - Else returns last N months (default 12)."""
     today = now_ist()
     result = []
@@ -422,12 +421,9 @@ async def get_monthly_flow(months: int = 12, fy: Optional[int] = None):
     property_taxes = await db.property_taxes.find({}, {"_id": 0}).to_list(10000)
     
     month_list = []
-    if fy is not None:
-        # Indian FY: April of `fy` year through March of `fy+1` year
-        for offset in range(12):
-            m = ((4 - 1 + offset) % 12) + 1
-            y = fy + ((4 - 1 + offset) // 12)
-            month_list.append((m, y))
+    if year is not None:
+        for m in range(1, 13):
+            month_list.append((m, year))
     else:
         cursor_year = today.year
         cursor_month = today.month

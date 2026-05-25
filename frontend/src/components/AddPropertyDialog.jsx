@@ -159,7 +159,7 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
                     step="0.01"
                     value={formData.highest_offer}
                     onChange={(e) => setFormData({ ...formData, highest_offer: e.target.value })}
-                    placeholder="e.g., 5000000"
+                    placeholder=""
                     className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                     data-testid="property-offer-input"
                   />
@@ -182,7 +182,7 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
                   id="highest_offer_notes"
                   value={formData.highest_offer_notes}
                   onChange={(e) => setFormData({ ...formData, highest_offer_notes: e.target.value })}
-                  placeholder="e.g., offer from local builder, terms, etc."
+                  placeholder=""
                   className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                   data-testid="property-offer-notes-input"
                 />

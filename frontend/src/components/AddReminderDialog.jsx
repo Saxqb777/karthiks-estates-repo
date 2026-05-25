@@ -63,7 +63,7 @@ export default function AddReminderDialog({ open, onOpenChange, onSuccess }) {
                 id="reminder-title"
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="e.g. Pay insurance premium"
+                placeholder=""
                 required
                 className="border-[#E5E2DA]"
                 data-testid="reminder-title-input"
@@ -102,7 +102,7 @@ export default function AddReminderDialog({ open, onOpenChange, onSuccess }) {
                 id="reminder-notes"
                 value={form.notes}
                 onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                placeholder="Any extra detail…"
+                placeholder=""
                 className="border-[#E5E2DA]"
                 data-testid="reminder-notes-input"
               />

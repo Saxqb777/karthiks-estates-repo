@@ -81,26 +81,23 @@ export function PropertyGrowthChart() {
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
-// Helper: Indian Financial Year (April-March)
-const getCurrentFY = () => {
-  const now = new Date();
-  return now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
-};
-const FY_OPTIONS = [2024, 2025, 2026].filter(y => y <= getCurrentFY());
-const fyLabel = (y) => `FY ${y}–${String(y + 1).slice(2)}`;
+// Calendar year selector (Jan-Dec)
+const getCurrentYear = () => new Date().getFullYear();
+const YEAR_OPTIONS = [2024, 2025, 2026].filter(y => y <= getCurrentYear());
+const yearLabel = (y) => String(y);
 
-const FYDropdown = ({ value, onChange, testIdPrefix }) => (
+const YearDropdown = ({ value, onChange, testIdPrefix }) => (
   <Select value={String(value)} onValueChange={(v) => onChange(parseInt(v))}>
     <SelectTrigger
-      className="w-[140px] h-8 text-xs border-[#E5E2DA] bg-white text-[#0F172A] focus:ring-0 focus:ring-offset-0"
-      data-testid={`${testIdPrefix}-fy-dropdown`}
+      className="w-[110px] h-8 text-xs border-[#E5E2DA] bg-white text-[#0F172A] focus:ring-0 focus:ring-offset-0"
+      data-testid={`${testIdPrefix}-year-dropdown`}
     >
       <SelectValue />
     </SelectTrigger>
     <SelectContent>
-      {FY_OPTIONS.map((y) => (
-        <SelectItem key={y} value={String(y)} data-testid={`${testIdPrefix}-fy-${y}`}>
-          {fyLabel(y)}
+      {YEAR_OPTIONS.map((y) => (
+        <SelectItem key={y} value={String(y)} data-testid={`${testIdPrefix}-year-${y}`}>
+          {yearLabel(y)}
         </SelectItem>
       ))}
     </SelectContent>
@@ -119,13 +116,13 @@ const SummaryRow = ({ label, value, color, dotColor, testId }) => (
 
 export function MonthlyFlowChart() {
   const [data, setData] = useState([]);
-  const [fy, setFy] = useState(getCurrentFY());
+  const [year, setYear] = useState(getCurrentYear());
 
   useEffect(() => {
-    axios.get(`${API}/analytics/monthly-flow?fy=${fy}`)
+    axios.get(`${API}/analytics/monthly-flow?year=${year}`)
       .then(r => setData(r.data))
       .catch(e => console.error('Monthly flow error:', e));
-  }, [fy]);
+  }, [year]);
 
   const totalRent = data.reduce((s, d) => s + (d.rent_collected || 0), 0);
   const totalExp = data.reduce((s, d) => s + (d.expenses || 0), 0);
@@ -134,9 +131,9 @@ export function MonthlyFlowChart() {
   return (
     <ChartCard
       title="Monthly Income vs Expenses"
-      subtitle={`${fyLabel(fy)} · Apr ${String(fy).slice(2)} – Mar ${String(fy + 1).slice(2)}`}
+      subtitle={`Year ${year} · Jan – Dec`}
       testId="chart-monthly-flow"
-      action={<FYDropdown value={fy} onChange={setFy} testIdPrefix="monthly-flow" />}
+      action={<YearDropdown value={year} onChange={setYear} testIdPrefix="monthly-flow" />}
     >
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-6 items-center">
         <ResponsiveContainer width="100%" height={280}>
@@ -161,10 +158,10 @@ export function MonthlyFlowChart() {
 
 export function CashFlowChart() {
   const [data, setData] = useState([]);
-  const [fy, setFy] = useState(getCurrentFY());
+  const [year, setYear] = useState(getCurrentYear());
 
   useEffect(() => {
-    axios.get(`${API}/analytics/monthly-flow?fy=${fy}`)
+    axios.get(`${API}/analytics/monthly-flow?year=${year}`)
       .then(r => {
         let cum = 0;
         const transformed = r.data.map(d => {
@@ -174,18 +171,18 @@ export function CashFlowChart() {
         setData(transformed);
       })
       .catch(e => console.error('Cashflow error:', e));
-  }, [fy]);
+  }, [year]);
 
   const incoming = data.reduce((s, d) => s + Math.max(0, d.monthly), 0);
   const outgoing = data.reduce((s, d) => s - Math.min(0, d.monthly), 0);
-  const fyNet = data.length > 0 ? data[data.length - 1].cumulative : 0;
+  const yearNet = data.length > 0 ? data[data.length - 1].cumulative : 0;
 
   return (
     <ChartCard
       title="Cumulative Net Profit"
-      subtitle={`${fyLabel(fy)} running cash flow`}
+      subtitle={`Year ${year} running cash flow`}
       testId="chart-cash-flow"
-      action={<FYDropdown value={fy} onChange={setFy} testIdPrefix="cash-flow" />}
+      action={<YearDropdown value={year} onChange={setYear} testIdPrefix="cash-flow" />}
     >
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_180px] gap-6 items-center">
         <ResponsiveContainer width="100%" height={280}>
@@ -206,7 +203,7 @@ export function CashFlowChart() {
         <div className="lg:border-l lg:border-[#E5E2DA] lg:pl-5">
           <SummaryRow label="Incoming (+)" value={formatINR(incoming)} color="#047857" dotColor="#047857" testId="summary-incoming" />
           <SummaryRow label="Outgoing (−)" value={formatINR(outgoing)} color="#B91C1C" dotColor="#B91C1C" testId="summary-outgoing" />
-          <SummaryRow label="Net (=)" value={formatINR(fyNet)} color={fyNet >= 0 ? '#0F172A' : '#B91C1C'} dotColor="#B89D5F" testId="summary-cumulative" />
+          <SummaryRow label="Net (=)" value={formatINR(yearNet)} color={yearNet >= 0 ? '#0F172A' : '#B91C1C'} dotColor="#B89D5F" testId="summary-cumulative" />
         </div>
       </div>
     </ChartCard>

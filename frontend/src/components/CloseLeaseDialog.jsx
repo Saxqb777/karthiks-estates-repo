@@ -228,7 +228,7 @@ export default function CloseLeaseDialog({ open, onOpenChange, tenant, onSuccess
                   id="exit_notes"
                   value={formData.exit_notes}
                   onChange={(e) => setFormData({ ...formData, exit_notes: e.target.value })}
-                  placeholder="e.g., Tenant relocated to Chennai. Property handed over in good condition."
+                  placeholder=""
                   className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                   data-testid="exit-notes-input"
                 />
