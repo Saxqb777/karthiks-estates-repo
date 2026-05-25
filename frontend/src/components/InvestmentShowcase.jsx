@@ -15,11 +15,15 @@ const formatLakhs = (v) => {
 
 export default function InvestmentShowcase() {
   const [properties, setProperties] = useState([]);
+  const [rentalIncome, setRentalIncome] = useState(0);
 
   useEffect(() => {
     axios.get(`${API}/properties`)
       .then(r => setProperties(r.data))
       .catch(e => console.error('Showcase load error:', e));
+    axios.get(`${API}/dashboard/stats`)
+      .then(r => setRentalIncome(r.data?.total_rental_income || 0))
+      .catch(e => console.error('Stats load error:', e));
   }, []);
 
   const withOffers = properties.filter(p => (p.highest_offer || 0) > 0);
@@ -30,8 +34,9 @@ export default function InvestmentShowcase() {
   const totalInvested = properties.reduce((s, p) => s + (p.purchase_price || 0), 0);
   const totalBestOffer = properties.reduce((s, p) => s + (p.highest_offer || 0), 0);
   const totalGain = totalBestOffer - totalInvested;
-  const multiplier = totalInvested > 0 ? totalBestOffer / totalInvested : 0;
-  const roiPct = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
+  const totalReturn = totalGain + rentalIncome;
+  const multiplier = totalInvested > 0 ? (totalBestOffer + rentalIncome) / totalInvested : 0;
+  const roiPct = totalInvested > 0 ? (totalReturn / totalInvested) * 100 : 0;
 
   // Compute average years held
   const yearsHeldList = properties
@@ -43,14 +48,10 @@ export default function InvestmentShowcase() {
     })
     .filter(Boolean);
   const avgYears = yearsHeldList.length > 0 ? yearsHeldList.reduce((a, b) => a + b, 0) / yearsHeldList.length : 0;
-  // CAGR = (FV/PV)^(1/n) - 1
+  // CAGR = (FV/PV)^(1/n) - 1 — using total return (capital + rental)
   const cagr = (avgYears > 0 && totalInvested > 0)
-    ? (Math.pow(totalBestOffer / totalInvested, 1 / avgYears) - 1) * 100
+    ? (Math.pow((totalBestOffer + rentalIncome) / totalInvested, 1 / avgYears) - 1) * 100
     : 0;
-
-  // Width ratio for comparison bars (invested vs offered)
-  const offerBarWidth = 100;
-  const investedBarWidth = totalBestOffer > 0 ? (totalInvested / totalBestOffer) * 100 : 0;
 
   return (
     <div
@@ -87,7 +88,7 @@ export default function InvestmentShowcase() {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 lg:gap-6 lg:border-l lg:border-white/10 lg:pl-12">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 lg:border-l lg:border-white/10 lg:pl-12">
             <div>
               <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#94A3B8] mb-2">
                 Originally Invested
@@ -104,14 +105,23 @@ export default function InvestmentShowcase() {
               <p className="text-2xl lg:text-3xl font-semibold tabular-nums text-[#B89D5F]" data-testid="showcase-offer">
                 {formatLakhs(totalBestOffer)}
               </p>
-              <p className="text-[11px] text-[#64748B] mt-1">{formatINR(totalBestOffer)}</p>
+              <p className="text-[11px] text-[#64748B] mt-1">+{formatLakhs(totalGain)} gain</p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#94A3B8] mb-2">
-                Unrealized Gain
+                Rental Income Earned
               </p>
-              <p className="text-2xl lg:text-3xl font-semibold tabular-nums text-[#10B981]" data-testid="showcase-gain">
-                +{formatLakhs(totalGain)}
+              <p className="text-2xl lg:text-3xl font-semibold tabular-nums text-[#10B981]" data-testid="showcase-rental">
+                {formatLakhs(rentalIncome)}
+              </p>
+              <p className="text-[11px] text-[#64748B] mt-1">while holding the property</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-[0.22em] font-semibold text-[#94A3B8] mb-2">
+                Total Return
+              </p>
+              <p className="text-2xl lg:text-3xl font-semibold tabular-nums text-[#10B981]" data-testid="showcase-total-return">
+                +{formatLakhs(totalReturn)}
               </p>
               <p className="text-[11px] text-[#64748B] mt-1 flex items-center gap-1">
                 <TrendUp size={11} className="text-[#10B981]" /> {cagr.toFixed(1)}% CAGR
@@ -136,7 +146,7 @@ export default function InvestmentShowcase() {
               <div className="w-full bg-white/5 rounded-sm h-3 overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-[#64748B] to-[#94A3B8] transition-all duration-1000"
-                  style={{ width: `${investedBarWidth}%` }}
+                  style={{ width: `${(totalInvested / Math.max(totalBestOffer + rentalIncome, 1)) * 100}%` }}
                 />
               </div>
             </div>
@@ -150,14 +160,32 @@ export default function InvestmentShowcase() {
               <div className="w-full bg-white/5 rounded-sm h-3 overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-[#B89D5F] to-[#E0C988] transition-all duration-1000"
-                  style={{ width: `${offerBarWidth}%` }}
+                  style={{ width: `${(totalBestOffer / Math.max(totalBestOffer + rentalIncome, 1)) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Offer + Rental (Total Realisable) bar */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs text-[#10B981] tracking-wider">OFFER + RENTAL EARNED</span>
+                <span className="text-xs font-semibold text-[#10B981] tabular-nums">{formatLakhs(totalBestOffer + rentalIncome)}</span>
+              </div>
+              <div className="w-full bg-white/5 rounded-sm h-3 overflow-hidden flex">
+                <div
+                  className="h-full bg-gradient-to-r from-[#B89D5F] to-[#E0C988] transition-all duration-1000"
+                  style={{ width: `${(totalBestOffer / Math.max(totalBestOffer + rentalIncome, 1)) * 100}%` }}
+                />
+                <div
+                  className="h-full bg-gradient-to-r from-[#10B981] to-[#34D399] transition-all duration-1000"
+                  style={{ width: `${(rentalIncome / Math.max(totalBestOffer + rentalIncome, 1)) * 100}%` }}
                 />
               </div>
             </div>
           </div>
 
           <p className="text-[11px] text-[#64748B] mt-3 italic">
-            Held for ~{avgYears.toFixed(1)} {avgYears < 1.1 ? 'year' : 'years'} · returns based on highest verified market offer
+            Held for ~{avgYears.toFixed(1)} {avgYears < 1.1 ? 'year' : 'years'} · gold = capital appreciation, green = cumulative rental income
           </p>
         </div>
 
