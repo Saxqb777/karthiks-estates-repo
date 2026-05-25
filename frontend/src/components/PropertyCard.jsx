@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { MapPin, Calendar, TrendUp, PencilSimple, Trash, House } from '@phosphor-icons/react';
+import { MapPin, Calendar, TrendUp, PencilSimple, Trash, House, Eye, Ruler } from '@phosphor-icons/react';
 import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import ConfirmDialog from './ConfirmDialog';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+const fmtSqft = (v) => v ? `${Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 })} sqft` : '—';
+
 export default function PropertyCard({ property, onRefresh, onEdit }) {
   const [showDelete, setShowDelete] = useState(false);
+  const [showLayout, setShowLayout] = useState(false);
 
   const calculateCurrentValue = () => {
     const purchaseDate = new Date(property.purchase_date);
@@ -81,6 +85,16 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
             <Calendar size={14} className="mr-1.5" />
             Purchased {new Date(property.purchase_date).toLocaleDateString('en-IN')}
           </div>
+          {(property.built_up_area || property.plot_frontage) && (
+            <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-[#64748B] pt-1">
+              {property.built_up_area > 0 && (
+                <span className="flex items-center"><Ruler size={14} className="mr-1.5" />Built-up {fmtSqft(property.built_up_area)}</span>
+              )}
+              {property.plot_frontage > 0 && property.plot_depth > 0 && (
+                <span>· Plot {property.plot_frontage}′ × {property.plot_depth}′</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="border-t border-[#E5E2DA] pt-4 space-y-3">
@@ -111,6 +125,24 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
               {property.appreciation_rate}%
             </span>
           </div>
+          {property.built_up_area > 0 && (
+            <div className="grid grid-cols-2 gap-3 pt-3 border-t border-dashed border-[#E5E2DA]">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#64748B] mb-1">Bought at</p>
+                <p className="text-sm font-semibold text-[#0F172A] tabular-nums">
+                  ₹{Math.round(property.purchase_price / property.built_up_area).toLocaleString('en-IN')}<span className="text-[10px] text-[#94A3B8] font-medium">/sqft</span>
+                </p>
+              </div>
+              {property.highest_offer > 0 && (
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#B89D5F] mb-1">Offered at</p>
+                  <p className="text-sm font-semibold text-[#B89D5F] tabular-nums">
+                    ₹{Math.round(property.highest_offer / property.built_up_area).toLocaleString('en-IN')}<span className="text-[10px] text-[#B89D5F]/60 font-medium">/sqft</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           {property.highest_offer > 0 && (
             <div className="mt-2 pt-3 border-t border-dashed border-[#E5E2DA]">
               <div className="flex justify-between items-baseline mb-1">
@@ -145,7 +177,60 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
             </div>
           )}
         </div>
+        {(property.plot_frontage > 0 && property.plot_depth > 0) || property.layout_image_url ? (
+          <div className="mt-5 pt-4 border-t border-[#E5E2DA] flex items-center justify-between gap-3">
+            {property.plot_frontage > 0 && property.plot_depth > 0 ? (
+              <div className="flex items-center gap-2.5">
+                {/* Mini SVG plot diagram */}
+                <svg width="32" height="48" viewBox="0 0 32 48" className="flex-shrink-0">
+                  <rect x="1" y="1" width="30" height="46" fill="#F4F4EF" stroke="#B89D5F" strokeDasharray="2 2" strokeWidth="0.8" />
+                  <rect x="8" y="6" width="18" height="14" fill="#0F172A" opacity="0.85" />
+                  <rect x="8" y="28" width="18" height="14" fill="#0F172A" opacity="0.85" />
+                </svg>
+                <div>
+                  <p className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#64748B]">Plot</p>
+                  <p className="text-[11px] text-[#0F172A] tabular-nums">
+                    {property.plot_frontage}′ × {property.plot_depth}′ <span className="text-[#94A3B8]">· {Math.round(property.plot_frontage * property.plot_depth).toLocaleString('en-IN')} sqft</span>
+                  </p>
+                </div>
+              </div>
+            ) : <div />}
+            {property.layout_image_url && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setShowLayout(true)}
+                className="border-[#E5E2DA] hover:border-[#0F172A] text-xs"
+                data-testid={`view-layout-${property.id}`}
+              >
+                <Eye size={14} className="mr-1.5" />
+                View Layout
+              </Button>
+            )}
+          </div>
+        ) : null}
       </div>
+      <Dialog open={showLayout} onOpenChange={setShowLayout}>
+        <DialogContent className="sm:max-w-[800px] bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-[#0F172A]">{property.name} · Layout</DialogTitle>
+          </DialogHeader>
+          {property.layout_image_url && (
+            <img
+              src={property.layout_image_url}
+              alt={`${property.name} layout`}
+              className="w-full rounded-md border border-[#E5E2DA]"
+              data-testid={`layout-image-${property.id}`}
+            />
+          )}
+          {property.plot_frontage > 0 && property.plot_depth > 0 && (
+            <p className="text-xs text-[#64748B] tracking-wider">
+              PLOT {property.plot_frontage}′ × {property.plot_depth}′ · {Math.round(property.plot_frontage * property.plot_depth).toLocaleString('en-IN')} SQFT
+              {property.built_up_area > 0 && <> · BUILT-UP {fmtSqft(property.built_up_area)}</>}
+            </p>
+          )}
+        </DialogContent>
+      </Dialog>
       <ConfirmDialog
         open={showDelete}
         onOpenChange={setShowDelete}

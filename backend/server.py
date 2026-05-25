@@ -56,6 +56,12 @@ class Property(BaseModel):
     highest_offer: float = 0.0
     highest_offer_date: Optional[str] = ""
     highest_offer_notes: Optional[str] = ""
+    # Plot & layout details
+    built_up_area: Optional[float] = None  # sqft
+    carpet_area: Optional[float] = None    # sqft
+    plot_frontage: Optional[float] = None  # feet
+    plot_depth: Optional[float] = None     # feet
+    layout_image_url: Optional[str] = None # base64 data URL or external URL
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class PropertyCreate(BaseModel):
@@ -68,6 +74,11 @@ class PropertyCreate(BaseModel):
     highest_offer: float = 0.0
     highest_offer_date: Optional[str] = ""
     highest_offer_notes: Optional[str] = ""
+    built_up_area: Optional[float] = None
+    carpet_area: Optional[float] = None
+    plot_frontage: Optional[float] = None
+    plot_depth: Optional[float] = None
+    layout_image_url: Optional[str] = None
 
 class PropertyUpdate(BaseModel):
     name: Optional[str] = None
@@ -79,6 +90,11 @@ class PropertyUpdate(BaseModel):
     highest_offer: Optional[float] = None
     highest_offer_date: Optional[str] = None
     highest_offer_notes: Optional[str] = None
+    built_up_area: Optional[float] = None
+    carpet_area: Optional[float] = None
+    plot_frontage: Optional[float] = None
+    plot_depth: Optional[float] = None
+    layout_image_url: Optional[str] = None
 
 class Tenant(BaseModel):
     model_config = ConfigDict(extra="ignore")
