@@ -20,6 +20,7 @@ import AddTaxDialog from '../components/AddTaxDialog';
 import RecordRentPaymentDialog from '../components/RecordRentPaymentDialog';
 import PaymentHistoryDialog from '../components/PaymentHistoryDialog';
 import CloseLeaseDialog from '../components/CloseLeaseDialog';
+import InvestmentShowcase from '../components/InvestmentShowcase';
 import {
   MonthlyFlowChart, CashFlowChart, ExpenseBreakdownChart, VacancyCard
 } from '../components/AnalyticsCharts';
@@ -189,6 +190,11 @@ export default function Dashboard() {
               testId="stat-security-deposits"
             />
           </div>
+        </section>
+
+        {/* Investment Showcase */}
+        <section className="mb-10">
+          <InvestmentShowcase />
         </section>
 
         {/* Reminders */}
