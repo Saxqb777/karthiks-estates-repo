@@ -122,8 +122,8 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="owner">Owner — counts as my expense</SelectItem>
-                  <SelectItem value="tenant">Tenant — not my expense</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                  <SelectItem value="tenant">Tenant</SelectItem>
                 </SelectContent>
               </Select>
               <p className={`text-[11px] mt-1.5 font-medium ${formData.paid_by === 'owner' ? 'text-[#B91C1C]' : 'text-[#047857]'}`}>
