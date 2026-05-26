@@ -81,6 +81,12 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
             <Calendar size={14} className="mr-1.5" />
             Purchased {new Date(property.purchase_date).toLocaleDateString('en-IN')}
           </div>
+          {property.consumer_number && (
+            <div className="flex items-center text-xs text-[#64748B] pt-1">
+              <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#94A3B8] mr-2">TNPDCL</span>
+              <span className="font-mono text-[#0F172A] tabular-nums">{property.consumer_number}</span>
+            </div>
+          )}
         </div>
 
         <div className="border-t border-[#E5E2DA] pt-4 space-y-3">

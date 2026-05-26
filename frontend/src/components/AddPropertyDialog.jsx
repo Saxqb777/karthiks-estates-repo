@@ -17,7 +17,8 @@ const emptyForm = {
   appreciation_rate: '',
   highest_offer: '',
   highest_offer_date: '',
-  highest_offer_notes: ''
+  highest_offer_notes: '',
+  consumer_number: ''
 };
 
 export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editProperty }) {
@@ -35,7 +36,8 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
         appreciation_rate: editProperty.appreciation_rate?.toString() || '',
         highest_offer: editProperty.highest_offer?.toString() || '',
         highest_offer_date: editProperty.highest_offer_date ? editProperty.highest_offer_date.split('T')[0] : '',
-        highest_offer_notes: editProperty.highest_offer_notes || ''
+        highest_offer_notes: editProperty.highest_offer_notes || '',
+        consumer_number: editProperty.consumer_number || ''
       });
     } else {
       setFormData(emptyForm);
@@ -146,6 +148,17 @@ export default function AddPropertyDialog({ open, onOpenChange, onSuccess, editP
                 className="border-[#E6E2D8] focus:border-[#2C4C3B]"
                 data-testid="property-rate-input"
               />
+            </div>
+            <div>
+              <Label htmlFor="consumer_number" className="text-[#2E2E2E]">TNPDCL Consumer Number</Label>
+              <Input
+                id="consumer_number"
+                value={formData.consumer_number}
+                onChange={(e) => setFormData({ ...formData, consumer_number: e.target.value })}
+                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                data-testid="property-consumer-number-input"
+              />
+              <p className="text-[10px] text-[#7D7D7D] mt-1">Used to track electricity / water bills</p>
             </div>
 
             <div className="pt-2 border-t border-[#E5E2DA]">
