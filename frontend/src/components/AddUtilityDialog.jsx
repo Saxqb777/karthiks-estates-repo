@@ -90,21 +90,6 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
               </Select>
             </div>
             <div>
-              <Label htmlFor="utility_type" className="text-[#2E2E2E]">Utility Type *</Label>
-              <Select
-                value={formData.utility_type}
-                onValueChange={(value) => setFormData({ ...formData, utility_type: value })}
-              >
-                <SelectTrigger className="border-[#E6E2D8]" data-testid="utility-type-select">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="water">Water</SelectItem>
-                  <SelectItem value="electricity">Electricity</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label htmlFor="amount" className="text-[#2E2E2E]">Amount (₹) *</Label>
               <Input
                 id="amount"

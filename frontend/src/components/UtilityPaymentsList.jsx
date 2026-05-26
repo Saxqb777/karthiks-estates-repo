@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Trash, Check, X, Drop, Lightning } from '@phosphor-icons/react';
+import { Trash, Check, X } from '@phosphor-icons/react';
 import { Button } from './ui/button';
 import ConfirmDialog from './ConfirmDialog';
 
@@ -62,9 +62,6 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
       <table className="w-full" data-testid="utilities-table">
         <thead>
           <tr className="border-b border-[#E6E2D8]">
-            <th className="text-left py-3 px-4 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
-              Type
-            </th>
             <th className="text-left py-3 px-4 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
               Property
             </th>
