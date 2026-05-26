@@ -14,7 +14,8 @@ const emptyForm = {
   property_id: '',
   amount: '',
   due_date: '',
-  paid_by: 'owner'
+  paid_by: 'owner',
+  mark_paid: false
 };
 
 export default function AddUtilityDialog({ open, onOpenChange, properties, onSuccess }) {
@@ -32,13 +33,17 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
         utility_type: 'electricity',
         amount: parseFloat(formData.amount),
         due_date: isoDue,
-        paid_status: true,
-        payment_date: isoDue,
+        paid_status: formData.mark_paid,
+        payment_date: formData.mark_paid ? new Date().toISOString() : null,
         paid_by: formData.paid_by,
         bill_reference: ''
       });
 
-      toast.success(`Payment recorded · paid by ${formData.paid_by}`);
+      toast.success(
+        formData.mark_paid
+          ? `Payment recorded as PAID by ${formData.paid_by}`
+          : `Upcoming bill recorded · to be paid by ${formData.paid_by}`
+      );
       setFormData(emptyForm);
       onOpenChange(false);
       onSuccess();
@@ -123,10 +128,27 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
               </Select>
               <p className={`text-[11px] mt-1.5 font-medium ${formData.paid_by === 'owner' ? 'text-[#B91C1C]' : 'text-[#047857]'}`}>
                 {formData.paid_by === 'owner'
-                  ? '↘ This amount will be added to your total expenses.'
-                  : '↗ Tenant covered this — your expenses are unaffected.'}
+                  ? '↘ When paid, this will be added to your total expenses.'
+                  : '↗ Tenant will cover this — your expenses are unaffected.'}
               </p>
             </div>
+
+            <div className="flex items-center gap-2 mt-2 pt-3 border-t border-[#E5E2DA]">
+              <input
+                id="mark_paid"
+                type="checkbox"
+                checked={formData.mark_paid}
+                onChange={(e) => setFormData({ ...formData, mark_paid: e.target.checked })}
+                className="h-4 w-4 accent-[#0F172A] cursor-pointer"
+                data-testid="utility-mark-paid-checkbox"
+              />
+              <Label htmlFor="mark_paid" className="text-[#0F172A] cursor-pointer text-sm">
+                Mark as already paid
+              </Label>
+            </div>
+            <p className="text-[10px] text-[#64748B] -mt-2 ml-6">
+              Leave unchecked to record an upcoming/unpaid bill (it will appear in Pending Actions).
+            </p>
           </div>
           <DialogFooter>
             <Button
