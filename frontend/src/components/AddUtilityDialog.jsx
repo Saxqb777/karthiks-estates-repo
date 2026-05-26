@@ -13,10 +13,13 @@ const API = `${BACKEND_URL}/api`;
 export default function AddUtilityDialog({ open, onOpenChange, properties, onSuccess }) {
   const [formData, setFormData] = useState({
     property_id: '',
-    utility_type: 'water',
+    utility_type: 'electricity',
     amount: '',
     due_date: '',
-    paid_status: false
+    paid_status: false,
+    payment_date: '',
+    paid_by: 'owner',
+    bill_reference: ''
   });
   const [loading, setLoading] = useState(false);
 
@@ -25,18 +28,27 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
     setLoading(true);
 
     try {
-      await axios.post(`${API}/utility-payments`, {
+      const payload = {
         ...formData,
         amount: parseFloat(formData.amount)
-      });
+      };
+      if (formData.paid_status && formData.payment_date) {
+        payload.payment_date = new Date(formData.payment_date).toISOString();
+      } else if (!formData.paid_status) {
+        payload.payment_date = null;
+      }
+      await axios.post(`${API}/utility-payments`, payload);
 
       toast.success('Utility payment added successfully');
       setFormData({
         property_id: '',
-        utility_type: 'water',
+        utility_type: 'electricity',
         amount: '',
         due_date: '',
-        paid_status: false
+        paid_status: false,
+        payment_date: '',
+        paid_by: 'owner',
+        bill_reference: ''
       });
       onOpenChange(false);
       onSuccess();
@@ -117,6 +129,58 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
                 data-testid="utility-due-date-input"
               />
             </div>
+            <div className="flex items-center gap-2">
+              <input
+                id="paid_status"
+                type="checkbox"
+                checked={formData.paid_status}
+                onChange={(e) => setFormData({ ...formData, paid_status: e.target.checked })}
+                className="h-4 w-4 accent-[#0F172A]"
+                data-testid="utility-paid-status-checkbox"
+              />
+              <Label htmlFor="paid_status" className="text-[#2E2E2E] cursor-pointer">Already paid</Label>
+            </div>
+            {formData.paid_status && (
+              <>
+                <div>
+                  <Label htmlFor="payment_date" className="text-[#2E2E2E]">Payment Date *</Label>
+                  <Input
+                    id="payment_date"
+                    type="date"
+                    value={formData.payment_date}
+                    onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+                    required
+                    className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                    data-testid="utility-payment-date-input"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="paid_by" className="text-[#2E2E2E]">Paid By *</Label>
+                  <Select
+                    value={formData.paid_by}
+                    onValueChange={(value) => setFormData({ ...formData, paid_by: value })}
+                  >
+                    <SelectTrigger className="border-[#E6E2D8]" data-testid="utility-paid-by-select">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="owner">Owner (me) — counts as my expense</SelectItem>
+                      <SelectItem value="tenant">Tenant — not my expense</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="bill_reference" className="text-[#2E2E2E]">Bank / Bill Reference</Label>
+                  <Input
+                    id="bill_reference"
+                    value={formData.bill_reference}
+                    onChange={(e) => setFormData({ ...formData, bill_reference: e.target.value })}
+                    className="border-[#E6E2D8] focus:border-[#2C4C3B] font-mono"
+                    data-testid="utility-bill-ref-input"
+                  />
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button

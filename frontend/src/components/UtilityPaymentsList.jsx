@@ -77,6 +77,12 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
             <th className="text-left py-3 px-4 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
               Status
             </th>
+            <th className="text-left py-3 px-4 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
+              Paid By
+            </th>
+            <th className="text-left py-3 px-4 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
+              Reference
+            </th>
             <th className="text-center py-3 px-4 text-xs uppercase tracking-[0.2em] font-bold text-[#7D7D7D]">
               Actions
             </th>
@@ -135,6 +141,24 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
                     </>
                   )}
                 </Button>
+              </td>
+              <td className="py-4 px-4">
+                {utility.paid_status ? (
+                  <span
+                    className={`inline-block px-2 py-1 rounded text-[10px] uppercase tracking-wider font-bold ${
+                      (utility.paid_by || 'owner') === 'tenant'
+                        ? 'bg-[#10B981]/10 text-[#047857]'
+                        : 'bg-[#0F172A]/10 text-[#0F172A]'
+                    }`}
+                  >
+                    {(utility.paid_by || 'owner') === 'tenant' ? 'Tenant' : 'Owner'}
+                  </span>
+                ) : (
+                  <span className="text-[#94A3B8] text-xs">—</span>
+                )}
+              </td>
+              <td className="py-4 px-4 text-[11px] text-[#64748B] font-mono break-all max-w-[180px]">
+                {utility.bill_reference || <span className="text-[#94A3B8]">—</span>}
               </td>
               <td className="py-4 px-4 text-center">
                 <Button

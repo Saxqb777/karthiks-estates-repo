@@ -183,6 +183,8 @@ class UtilityPayment(BaseModel):
     due_date: str
     paid_status: bool
     payment_date: Optional[str] = None
+    paid_by: str = "owner"  # "owner" | "tenant"
+    bill_reference: Optional[str] = ""  # bank/transaction reference number
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class UtilityPaymentCreate(BaseModel):
@@ -192,12 +194,16 @@ class UtilityPaymentCreate(BaseModel):
     due_date: str
     paid_status: bool = False
     payment_date: Optional[str] = None
+    paid_by: str = "owner"
+    bill_reference: Optional[str] = ""
 
 class UtilityPaymentUpdate(BaseModel):
     amount: Optional[float] = None
     due_date: Optional[str] = None
     paid_status: Optional[bool] = None
     payment_date: Optional[str] = None
+    paid_by: Optional[str] = None
+    bill_reference: Optional[str] = None
 
 class PropertyTax(BaseModel):
     model_config = ConfigDict(extra="ignore")
@@ -468,9 +474,11 @@ async def get_monthly_flow(months: int = 12, year: Optional[int] = None):
             except (ValueError, AttributeError):
                 pass
         
-        # Paid utilities by payment_date
+        # Paid utilities by payment_date (only owner-paid count as expense)
         for u in utility_payments:
             if not u.get('paid_status') or not u.get('payment_date'):
+                continue
+            if u.get('paid_by', 'owner') != 'owner':
                 continue
             try:
                 dt = datetime.fromisoformat(u['payment_date'])
@@ -514,7 +522,7 @@ async def get_expense_breakdown():
         cat = e.get('category', 'other').capitalize()
         breakdown[cat] = breakdown.get(cat, 0) + e.get('amount', 0)
     
-    paid_utilities = sum(u.get('amount', 0) for u in utility_payments if u.get('paid_status'))
+    paid_utilities = sum(u.get('amount', 0) for u in utility_payments if u.get('paid_status') and u.get('paid_by', 'owner') == 'owner')
     if paid_utilities > 0:
         breakdown['Utilities'] = paid_utilities
     
@@ -918,7 +926,7 @@ async def get_dashboard_stats():
     
     # All actual money spent
     direct_expenses = sum(e.get('amount', 0) for e in expenses)
-    paid_utilities = sum(u.get('amount', 0) for u in utility_payments if u.get('paid_status'))
+    paid_utilities = sum(u.get('amount', 0) for u in utility_payments if u.get('paid_status') and u.get('paid_by', 'owner') == 'owner')
     paid_taxes = sum(t.get('amount', 0) for t in property_taxes if t.get('paid_status'))
     total_expenses_amount = direct_expenses + paid_utilities + paid_taxes + pending_dues_from_closed
     
