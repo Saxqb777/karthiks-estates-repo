@@ -10,17 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
+const emptyForm = {
+  property_id: '',
+  amount: '',
+  due_date: '',
+  paid_by: 'owner'
+};
+
 export default function AddUtilityDialog({ open, onOpenChange, properties, onSuccess }) {
-  const [formData, setFormData] = useState({
-    property_id: '',
-    utility_type: 'electricity',
-    amount: '',
-    due_date: '',
-    paid_status: false,
-    payment_date: '',
-    paid_by: 'owner',
-    bill_reference: ''
-  });
+  const [formData, setFormData] = useState(emptyForm);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -28,28 +26,20 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
     setLoading(true);
 
     try {
-      const payload = {
-        ...formData,
-        amount: parseFloat(formData.amount)
-      };
-      if (formData.paid_status && formData.payment_date) {
-        payload.payment_date = new Date(formData.payment_date).toISOString();
-      } else if (!formData.paid_status) {
-        payload.payment_date = null;
-      }
-      await axios.post(`${API}/utility-payments`, payload);
-
-      toast.success('Utility payment added successfully');
-      setFormData({
-        property_id: '',
+      const isoDue = new Date(formData.due_date).toISOString();
+      await axios.post(`${API}/utility-payments`, {
+        property_id: formData.property_id,
         utility_type: 'electricity',
-        amount: '',
-        due_date: '',
-        paid_status: false,
-        payment_date: '',
-        paid_by: 'owner',
+        amount: parseFloat(formData.amount),
+        due_date: isoDue,
+        paid_status: true,
+        payment_date: isoDue,
+        paid_by: formData.paid_by,
         bill_reference: ''
       });
+
+      toast.success(`Payment recorded · paid by ${formData.paid_by}`);
+      setFormData(emptyForm);
       onOpenChange(false);
       onSuccess();
     } catch (error) {
@@ -62,22 +52,22 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] bg-white" data-testid="add-utility-dialog">
+      <DialogContent className="sm:max-w-[480px] bg-white" data-testid="add-utility-dialog">
         <DialogHeader>
-          <DialogTitle className="text-2xl font-semibold text-[#2C4C3B]">
+          <DialogTitle className="text-xl font-semibold text-[#0F172A]">
             Add Utility Payment
           </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit}>
-          <div className="space-y-4 py-4">
+          <div className="space-y-4 py-2">
             <div>
-              <Label htmlFor="property" className="text-[#2E2E2E]">Property *</Label>
+              <Label htmlFor="property" className="text-[#0F172A]">Property *</Label>
               <Select
                 value={formData.property_id}
                 onValueChange={(value) => setFormData({ ...formData, property_id: value })}
                 required
               >
-                <SelectTrigger className="border-[#E6E2D8]" data-testid="utility-property-select">
+                <SelectTrigger className="border-[#E5E2DA]" data-testid="utility-property-select">
                   <SelectValue placeholder="Select a property" />
                 </SelectTrigger>
                 <SelectContent>
@@ -89,8 +79,9 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
                 </SelectContent>
               </Select>
             </div>
+
             <div>
-              <Label htmlFor="amount" className="text-[#2E2E2E]">Amount (₹) *</Label>
+              <Label htmlFor="amount" className="text-[#0F172A]">Amount (₹) *</Label>
               <Input
                 id="amount"
                 type="number"
@@ -98,81 +89,51 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 required
-                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                className="border-[#E5E2DA]"
                 data-testid="utility-amount-input"
               />
             </div>
+
             <div>
-              <Label htmlFor="due_date" className="text-[#2E2E2E]">Due Date *</Label>
+              <Label htmlFor="due_date" className="text-[#0F172A]">Due Date *</Label>
               <Input
                 id="due_date"
                 type="date"
                 value={formData.due_date}
                 onChange={(e) => setFormData({ ...formData, due_date: e.target.value })}
                 required
-                className="border-[#E6E2D8] focus:border-[#2C4C3B]"
+                className="border-[#E5E2DA]"
                 data-testid="utility-due-date-input"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                id="paid_status"
-                type="checkbox"
-                checked={formData.paid_status}
-                onChange={(e) => setFormData({ ...formData, paid_status: e.target.checked })}
-                className="h-4 w-4 accent-[#0F172A]"
-                data-testid="utility-paid-status-checkbox"
-              />
-              <Label htmlFor="paid_status" className="text-[#2E2E2E] cursor-pointer">Already paid</Label>
+
+            <div>
+              <Label htmlFor="paid_by" className="text-[#0F172A]">Paid By *</Label>
+              <Select
+                value={formData.paid_by}
+                onValueChange={(value) => setFormData({ ...formData, paid_by: value })}
+              >
+                <SelectTrigger className="border-[#E5E2DA]" data-testid="utility-paid-by-select">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="owner">Owner — counts as my expense</SelectItem>
+                  <SelectItem value="tenant">Tenant — not my expense</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className={`text-[11px] mt-1.5 font-medium ${formData.paid_by === 'owner' ? 'text-[#B91C1C]' : 'text-[#047857]'}`}>
+                {formData.paid_by === 'owner'
+                  ? '↘ This amount will be added to your total expenses.'
+                  : '↗ Tenant covered this — your expenses are unaffected.'}
+              </p>
             </div>
-            {formData.paid_status && (
-              <>
-                <div>
-                  <Label htmlFor="payment_date" className="text-[#2E2E2E]">Payment Date *</Label>
-                  <Input
-                    id="payment_date"
-                    type="date"
-                    value={formData.payment_date}
-                    onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
-                    required
-                    className="border-[#E6E2D8] focus:border-[#2C4C3B]"
-                    data-testid="utility-payment-date-input"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="paid_by" className="text-[#2E2E2E]">Paid By *</Label>
-                  <Select
-                    value={formData.paid_by}
-                    onValueChange={(value) => setFormData({ ...formData, paid_by: value })}
-                  >
-                    <SelectTrigger className="border-[#E6E2D8]" data-testid="utility-paid-by-select">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="owner">Owner (me) — counts as my expense</SelectItem>
-                      <SelectItem value="tenant">Tenant — not my expense</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label htmlFor="bill_reference" className="text-[#2E2E2E]">Bank / Bill Reference</Label>
-                  <Input
-                    id="bill_reference"
-                    value={formData.bill_reference}
-                    onChange={(e) => setFormData({ ...formData, bill_reference: e.target.value })}
-                    className="border-[#E6E2D8] focus:border-[#2C4C3B] font-mono"
-                    data-testid="utility-bill-ref-input"
-                  />
-                </div>
-              </>
-            )}
           </div>
           <DialogFooter>
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
-              className="border-[#E6E2D8]"
+              className="border-[#E5E2DA]"
               data-testid="cancel-utility-btn"
             >
               Cancel
@@ -180,7 +141,7 @@ export default function AddUtilityDialog({ open, onOpenChange, properties, onSuc
             <Button
               type="submit"
               disabled={loading}
-              className="bg-[#2C4C3B] hover:bg-[#1F362A] text-white"
+              className="bg-[#0F172A] hover:bg-[#1E293B] text-white"
               data-testid="submit-utility-btn"
             >
               {loading ? 'Adding...' : 'Add Payment'}

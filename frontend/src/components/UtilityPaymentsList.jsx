@@ -86,78 +86,89 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
           </tr>
         </thead>
         <tbody>
-          {utilities.map((utility) => (
-            <tr
-              key={utility.id}
-              className={`border-b border-[#E6E2D8] hover:bg-[#F7F5F0]/50 ${
-                isOverdue(utility.due_date, utility.paid_status) ? 'bg-[#D96C4E]/5' : ''
-              }`}
-              data-testid={`utility-row-${utility.id}`}
-            >
-              <td className="py-4 px-4 text-[#2E2E2E]">
-                {getPropertyName(utility.property_id)}
-              </td>
-              <td className="py-4 px-4 font-semibold text-[#2C4C3B]">
-                ₹{utility.amount.toLocaleString('en-IN')}
-              </td>
-              <td className="py-4 px-4 text-[#7D7D7D]">
-                {new Date(utility.due_date).toLocaleDateString('en-IN')}
-                {isOverdue(utility.due_date, utility.paid_status) && (
-                  <span className="ml-2 text-xs text-[#D96C4E] font-medium">(Overdue)</span>
-                )}
-              </td>
-              <td className="py-4 px-4">
-                <Button
-                  size="sm"
-                  variant={utility.paid_status ? 'default' : 'outline'}
-                  onClick={() => handleTogglePaid(utility.id, utility.paid_status)}
-                  className={utility.paid_status ? 'bg-[#7BA38A] hover:bg-[#6A9279] text-white' : 'border-[#E6E2D8] hover:border-[#D1CBBF]'}
-                  data-testid={`toggle-paid-${utility.id}`}
-                >
-                  {utility.paid_status ? (
-                    <>
-                      <Check size={16} className="mr-1" />
-                      Paid
-                    </>
-                  ) : (
-                    <>
-                      <X size={16} className="mr-1" />
-                      Unpaid
-                    </>
+          {utilities.map((utility) => {
+            const isOwnerPaid = utility.paid_status && (utility.paid_by || 'owner') === 'owner';
+            const isTenantPaid = utility.paid_status && utility.paid_by === 'tenant';
+            const overdue = isOverdue(utility.due_date, utility.paid_status);
+            const rowBg = overdue
+              ? 'bg-[#FEE2E2]/40'
+              : isOwnerPaid
+                ? 'bg-[#FFF5EB]'
+                : isTenantPaid
+                  ? 'bg-[#ECFDF5]'
+                  : '';
+            return (
+              <tr
+                key={utility.id}
+                className={`border-b border-[#E6E2D8] hover:bg-[#F7F5F0]/50 ${rowBg}`}
+                data-testid={`utility-row-${utility.id}`}
+              >
+                <td className="py-4 px-4 text-[#2E2E2E]">
+                  {getPropertyName(utility.property_id)}
+                </td>
+                <td className={`py-4 px-4 font-semibold tabular-nums ${isOwnerPaid ? 'text-[#B91C1C]' : 'text-[#0F172A]'}`}>
+                  ₹{utility.amount.toLocaleString('en-IN')}
+                  {isOwnerPaid && <span className="ml-1 text-[10px] uppercase tracking-wider font-bold text-[#B91C1C]">EXPENSE</span>}
+                </td>
+                <td className="py-4 px-4 text-[#7D7D7D]">
+                  {new Date(utility.due_date).toLocaleDateString('en-IN')}
+                  {overdue && (
+                    <span className="ml-2 text-xs text-[#B91C1C] font-medium">(Overdue)</span>
                   )}
-                </Button>
-              </td>
-              <td className="py-4 px-4">
-                {utility.paid_status ? (
-                  <span
-                    className={`inline-block px-2 py-1 rounded text-[10px] uppercase tracking-wider font-bold ${
-                      (utility.paid_by || 'owner') === 'tenant'
-                        ? 'bg-[#10B981]/10 text-[#047857]'
-                        : 'bg-[#0F172A]/10 text-[#0F172A]'
-                    }`}
+                </td>
+                <td className="py-4 px-4">
+                  <Button
+                    size="sm"
+                    variant={utility.paid_status ? 'default' : 'outline'}
+                    onClick={() => handleTogglePaid(utility.id, utility.paid_status)}
+                    className={utility.paid_status ? 'bg-[#7BA38A] hover:bg-[#6A9279] text-white' : 'border-[#E6E2D8] hover:border-[#D1CBBF]'}
+                    data-testid={`toggle-paid-${utility.id}`}
                   >
-                    {(utility.paid_by || 'owner') === 'tenant' ? 'Tenant' : 'Owner'}
-                  </span>
-                ) : (
-                  <span className="text-[#94A3B8] text-xs">—</span>
-                )}
-              </td>
-              <td className="py-4 px-4 text-[11px] text-[#64748B] font-mono break-all max-w-[180px]">
-                {utility.bill_reference || <span className="text-[#94A3B8]">—</span>}
-              </td>
-              <td className="py-4 px-4 text-center">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setDeleteId(utility.id)}
-                  className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
-                  data-testid={`delete-utility-${utility.id}`}
-                >
-                  <Trash size={18} />
-                </Button>
-              </td>
-            </tr>
-          ))}
+                    {utility.paid_status ? (
+                      <>
+                        <Check size={16} className="mr-1" />
+                        Paid
+                      </>
+                    ) : (
+                      <>
+                        <X size={16} className="mr-1" />
+                        Unpaid
+                      </>
+                    )}
+                  </Button>
+                </td>
+                <td className="py-4 px-4">
+                  {utility.paid_status ? (
+                    <span
+                      className={`inline-block px-2 py-1 rounded text-[10px] uppercase tracking-wider font-bold ${
+                        (utility.paid_by || 'owner') === 'tenant'
+                          ? 'bg-[#10B981]/15 text-[#047857]'
+                          : 'bg-[#B91C1C]/10 text-[#B91C1C]'
+                      }`}
+                    >
+                      {(utility.paid_by || 'owner') === 'tenant' ? 'Tenant' : 'Owner (Expense)'}
+                    </span>
+                  ) : (
+                    <span className="text-[#94A3B8] text-xs">—</span>
+                  )}
+                </td>
+                <td className="py-4 px-4 text-[11px] text-[#64748B] font-mono break-all max-w-[180px]">
+                  {utility.bill_reference || <span className="text-[#94A3B8]">—</span>}
+                </td>
+                <td className="py-4 px-4 text-center">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setDeleteId(utility.id)}
+                    className="text-[#D96C4E] hover:text-[#C2583D] hover:bg-[#D96C4E]/10"
+                    data-testid={`delete-utility-${utility.id}`}
+                  >
+                    <Trash size={18} />
+                  </Button>
+                </td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       <ConfirmDialog
