@@ -94,18 +94,6 @@ export default function UtilityPaymentsList({ utilities, properties, onRefresh }
               }`}
               data-testid={`utility-row-${utility.id}`}
             >
-              <td className="py-4 px-4">
-                <div className="flex items-center">
-                  {utility.utility_type === 'water' ? (
-                    <Drop size={20} className="mr-2 text-[#2C4C3B]" />
-                  ) : (
-                    <Lightning size={20} className="mr-2 text-[#D96C4E]" />
-                  )}
-                  <span className="capitalize text-[#2E2E2E] font-medium">
-                    {utility.utility_type}
-                  </span>
-                </div>
-              </td>
               <td className="py-4 px-4 text-[#2E2E2E]">
                 {getPropertyName(utility.property_id)}
               </td>
