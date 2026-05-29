@@ -86,7 +86,7 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
               <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#94A3B8] mr-2">TNPDCL</span>
               <span className="font-mono text-[#0F172A] tabular-nums">{property.consumer_number}</span>
               <a
-                href="https://www.tangedco.gov.in/lcms/billing/login.aspx"
+                href="https://www.tnebnet.org/qwp/qpay"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="ml-2 text-[10px] uppercase tracking-[0.15em] font-bold text-[#B89D5F] hover:text-[#9A7F47] hover:underline"
