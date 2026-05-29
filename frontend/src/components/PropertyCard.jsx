@@ -85,6 +85,14 @@ export default function PropertyCard({ property, onRefresh, onEdit }) {
             <div className="flex items-center text-xs text-[#64748B] pt-1">
               <span className="text-[10px] uppercase tracking-[0.18em] font-bold text-[#94A3B8] mr-2">TNPDCL</span>
               <span className="font-mono text-[#0F172A] tabular-nums">{property.consumer_number}</span>
+              <a
+                href="https://www.tangedco.gov.in/lcms/billing/login.aspx"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 text-[10px] uppercase tracking-[0.15em] font-bold text-[#B89D5F] hover:text-[#9A7F47] hover:underline"
+              >
+                Pay Bill
+              </a>
             </div>
           )}
         </div>
